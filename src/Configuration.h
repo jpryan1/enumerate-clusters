@@ -21,9 +21,9 @@ public:
 	~Configuration(){
 		free(p);
 	}
-//	void addGraph(sparsegraph* add){
-//		graph = add;
-//	}
+	void addGraph(sparsegraph* add){
+		graph = add;
+	}
 //	void printDetails(){
 //		std::cout<<"PRINTING"<<std::endl;
 //		for(int i=0; i<graph->nv; i++){
@@ -34,7 +34,7 @@ public:
 	
 	
 	
-	int compareTo(Configuration* other); //comparator for tree
+	int compareGraph(Configuration* other); //comparator for tree
 
 	void canonizeGraph();
 	
