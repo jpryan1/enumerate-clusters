@@ -1,7 +1,7 @@
 #ifndef  _CONFIGURATION_H_    /* only process this file once */
 #define  _CONFIGURATION_H_
 
-#define NUM_OF_SPHERES 11
+#define NUM_OF_SPHERES 3
 
 #include <iostream>
 #include "Eigen/Dense"
@@ -9,29 +9,26 @@
 
 using namespace Eigen;
 
+typedef Matrix<float, 3*NUM_OF_SPHERES, 1> ConfigVector;
+
 class Configuration{
 	
 public:
-	Configuration(int num_of_spheres, float* points){
+	Configuration(float* points){
 		//obviously graph should be initialized here too, but we'll worry about that later
-		p = (VectorXf*) malloc(num_of_spheres*sizeof(float)*3);
-		memcpy(p, points, num_of_spheres*sizeof(float)*3);
+		
+		p = new ConfigVector();
+		memcpy(p, points, 3*NUM_OF_SPHERES*sizeof(float));
 		
 	}
+	
 	~Configuration(){
-		free(p);
+		delete p;
 	}
 	void addGraph(sparsegraph* add){
 		graph = add;
 	}
-//	void printDetails(){
-//		std::cout<<"PRINTING"<<std::endl;
-//		for(int i=0; i<graph->nv; i++){
-//			std::cout<<graph->d[i]<<std::endl;
-//		}std::cout<<"DONE PRINTING"<<std::endl;
-//	}
-
-	
+	void printDetails();
 	
 	
 	int compareGraph(Configuration* other); //comparator for tree
@@ -40,7 +37,7 @@ public:
 	
 	
 private:
-	VectorXf* p; // contains 3*n floats for points in space
+	ConfigVector* p; // contains 3*n floats for points in space
 	sparsegraph* graph;
 	
 

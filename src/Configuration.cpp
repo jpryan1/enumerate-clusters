@@ -73,8 +73,18 @@ void Configuration::canonizeGraph(){
 	//here's the main line of this function
 	//this function creates the arrays for canonized
 	sparsenauty(graph,lab, ptn, orbits, &options, &stats, canonized);
+//	
+	float newPoints[3*NUM_OF_SPHERES];
 	
-	
+	for(int i=0; i< NUM_OF_SPHERES; i++){
+		for(int j=0; j<3; j++){
+			newPoints[3*i+j] = (*this->p) (3*lab[i]+j);
+			
+		}
+	}
+
+	memcpy(this->p, newPoints, sizeof(float)*NUM_OF_SPHERES*3);
+
 	SG_FREE(*graph); //free up the arrays
 	delete graph;	//free up the object
 	graph = canonized;
@@ -84,3 +94,18 @@ void Configuration::canonizeGraph(){
 	
 	
 }
+
+void Configuration::printDetails(){
+	std::cout<<"Printing config details..."<<std::endl;
+	
+	for(int i=0; i<graph->nv; i++){
+		std::cout<<"Degree of vertex "<<i<<" is "<<graph->d[i]<<std::endl;
+	}
+	for(int i=0; i<NUM_OF_SPHERES; i++){
+		for(int j=0; j<3; j++){
+			std::cout<<(*this->p)(3*i+j)<<" ";
+		}std::cout<<std::endl;
+	}
+	std::cout<<"Done printing config details!"<<std::endl;
+}
+
