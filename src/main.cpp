@@ -10,17 +10,57 @@
 
 
 //TODO Consider fixed size vectorization (16 byte alignment) via Eigen
+Configuration* firstCluster(){
+	
+	float points[NUM_OF_SPHERES*3];
+	for(int i=0; i<NUM_OF_SPHERES*3; i++){
+		points[i] = 0;
+	}
+	
+	Configuration* c = new Configuration(points);
+	
+	graph* g = (graph*) malloc(NUM_OF_SPHERES*sizeof(graph));
+	c->addGraph(g);
+	
+	for(int i=0; i<5; i++){
+		for(int j=1;j<4;j++){
+			c->addEdge(i, i+j);
+		}
+	}
+	c->addEdge(5, 6);
+	c->addEdge(5, 7);
+	c->addEdge(6, 7);
+	
+	
+	
+	return c;
+	
+}
 
 int main(){
 	
 	//BEGIN TESTING
-		
+	
 	return 0;
 	//END TESTING
 	
 	//INITIALIZATION
-	//std::queue<Configuration*> Queue;
-	//Bank* bank = new Bank();
+	std::queue<Configuration*> Queue;
+	Bank* bank = new Bank();
+	
+	Queue.push(firstCluster());
+
+	Configuration* current;
+	while(Queue.size() > 0){
+		current = Queue.front();
+		Queue.pop();
+		
+		current->canonize();
+		if(add(current)){ //returns 1 if already in bank, otherwise adds and returns 0
+			continue;
+		}
+		
+	}
 	//START WITH ONE CLUSTER
 	//CREATE EMPTY BANK
 	//CREATE EMPTY QUEUE WITH FIRST CLUSTER
@@ -47,3 +87,6 @@ int main(){
 	
 	
 }
+
+
+//FIXME

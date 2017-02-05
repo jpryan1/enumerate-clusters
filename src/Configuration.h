@@ -1,7 +1,7 @@
 #ifndef  _CONFIGURATION_H_    /* only process this file once */
 #define  _CONFIGURATION_H_
 
-#define NUM_OF_SPHERES 3
+#define NUM_OF_SPHERES 8
 
 #include <iostream>
 #include "Eigen/Dense"
@@ -32,7 +32,7 @@ public:
 	
 	int compareGraph(Configuration* other); //comparator for tree
 
-	void canonizeGraph();
+	void canonize();
 	
 	void deleteEdge(int i, int j);
 	void addEdge(int i, int j);

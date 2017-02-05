@@ -17,7 +17,7 @@ int Configuration::compareGraph(Configuration* other){
 	}return 0;
 }
 
-void Configuration::canonizeGraph(){
+void Configuration::canonize(){
 	
 	
 	//These arrays are passed to sparsenauty in canonization, so that function can write its data somewhere
