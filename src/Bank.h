@@ -6,6 +6,8 @@
 #include "Configuration.h"
 #include <vector>
 
+
+
 struct BankNode{
 	std::vector<Configuration*> configs;
 	BankNode* left;

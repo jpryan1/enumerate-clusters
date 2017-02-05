@@ -5,10 +5,9 @@
 
 #include <iostream>
 #include "Eigen/Dense"
-#include "nausparse.h"
+#include "nauty.h"
 
 using namespace Eigen;
-
 typedef Matrix<float, 3*NUM_OF_SPHERES, 1> ConfigVector;
 
 class Configuration{
@@ -25,8 +24,8 @@ public:
 	~Configuration(){
 		delete p;
 	}
-	void addGraph(sparsegraph* add){
-		graph = add;
+	void addGraph(graph* add){
+		g = add;
 	}
 	void printDetails();
 	
@@ -35,10 +34,12 @@ public:
 
 	void canonizeGraph();
 	
+	void deleteEdge(int i, int j);
+	void addEdge(int i, int j);
 	
 private:
 	ConfigVector* p; // contains 3*n floats for points in space
-	sparsegraph* graph;
+	graph* g;
 	
 
 	

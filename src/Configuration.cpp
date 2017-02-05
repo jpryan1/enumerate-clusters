@@ -1,61 +1,28 @@
 #include "Configuration.h"
+#include <bitset>
 
 
 
 int Configuration::compareGraph(Configuration* other){
-	//ASSUMPTION IS THAT SPARSEGRAPHS ARE IN CANONICAL FORM
-	//WORSTCASE RUNTIME - NUMBER OF EDGES
-	sparsegraph* a = this->graph;
-	sparsegraph* b = other->graph;
-	if(a->nv > b->nv){
-		return 1;
-	}else if(a->nv < b->nv){
-		return -1;
-	}
-	if(a->nde > b->nde){
-		return 1;
-	}else if(a->nde < b->nde){
-		return -1;
-	}
-	int edges_a = 0;
-	int edges_b = 0;
 	
-	int* ad = a->d;
-	int* ae = a->e;
-	int* bd = b->d;
-	int* be = b->e;
-	size_t* av = a->v;
-	size_t* bv = b->v;
+	setword* g1 = (setword*) this->g;
+	setword* g2 = (setword*) other->g;
 	
-	for(int i=0; i<a->nv; i++){
-		if(ad[i] > bd[i]){
-			return 1;
-		}else if(ad[1] < bd[1]){
+	for(int i=0; i<NUM_OF_SPHERES; i++){
+		if(g1[i]<g2[i]){
 			return -1;
-		}
-		
-		for(int j=0; j < ad[i]; j++){
-			edges_a |= (1<<ae[av[i]+j]);
-			edges_b |= (1<<be[bv[i]+j]);
-		}
-		
-		if(edges_a > edges_b){
+		}else if(g1[i]>g2[i]){
 			return 1;
-		}else if(edges_a < edges_b){
-			return -1;
 		}
-		edges_a = 0;
-		edges_b = 0;
-	}
-	return 0;
+	}return 0;
 }
 
 void Configuration::canonizeGraph(){
 	
 	
 	//These arrays are passed to sparsenauty in canonization, so that function can write its data somewhere
-	//TODO edit sparsenauty to not record data into these
-	//long story short - sparsenauty does more things than just canonize, which we don't care about
+	//TODO edit nauty to not record data into these
+	//long story short - nauty does more things than just canonize, which we don't care about
 	//sure, this allocation is done every time this function is called,
 	//but I think the work is done at compiletime, not runtime
 	//besides, the alternative is passing pointers to arrays to this method, which is ugly.
@@ -63,17 +30,20 @@ void Configuration::canonizeGraph(){
 	int ptn[NUM_OF_SPHERES];
 	int orbits[NUM_OF_SPHERES];
 	
-	DEFAULTOPTIONS_SPARSEGRAPH(options);
+	DEFAULTOPTIONS_GRAPH(options);
 	options.getcanon = true;
 	
 	statsblk stats;
-	sparsegraph* canonized = new sparsegraph();
+//	
+	graph *canonized = (graph*) malloc(sizeof(graph)*NUM_OF_SPHERES);
+//	
+	densenauty(this->g, lab, ptn, orbits, &options, &stats, 1, NUM_OF_SPHERES, canonized);
+//	
 	//create the object
 	
 	//here's the main line of this function
 	//this function creates the arrays for canonized
-	sparsenauty(graph,lab, ptn, orbits, &options, &stats, canonized);
-//	
+	
 	float newPoints[3*NUM_OF_SPHERES];
 	
 	for(int i=0; i< NUM_OF_SPHERES; i++){
@@ -84,28 +54,30 @@ void Configuration::canonizeGraph(){
 	}
 
 	memcpy(this->p, newPoints, sizeof(float)*NUM_OF_SPHERES*3);
-
-	SG_FREE(*graph); //free up the arrays
-	delete graph;	//free up the object
-	graph = canonized;
-	
-	
+	free(this->g);
+	this->g = canonized;
 	
 	
 	
 }
 
+void Configuration::deleteEdge(int a, int b){
+	DELELEMENT(g+a, b);
+	DELELEMENT(g+b, a);
+}
+
+void Configuration::addEdge(int a, int b){
+	ADDONEEDGE(g, a, b, 1);
+}
+
+
+
 void Configuration::printDetails(){
-	std::cout<<"Printing config details..."<<std::endl;
-	
-	for(int i=0; i<graph->nv; i++){
-		std::cout<<"Degree of vertex "<<i<<" is "<<graph->d[i]<<std::endl;
-	}
+	std::cout<<"\nPrinting config details"<<std::endl;
+	setword* g1 = (setword*) this->g;
 	for(int i=0; i<NUM_OF_SPHERES; i++){
-		for(int j=0; j<3; j++){
-			std::cout<<(*this->p)(3*i+j)<<" ";
-		}std::cout<<std::endl;
+		std::cout << std::bitset<64>(g1[i]) << std::endl;
 	}
-	std::cout<<"Done printing config details!"<<std::endl;
+	std::cout<<"Done printing config details\n"<<std::endl;
 }
 
