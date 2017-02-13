@@ -4,51 +4,35 @@
 //the above is specially used since our graphs will have small order, see nauty documentation
 
 #include <iostream>
+#include <fstream>
 #include <queue>
 #include "Configuration.h"
 #include "Bank.h"
+#include "Dimension.h"
 
 
+Configuration* initialCluster();
+void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue);
 //TODO Consider fixed size vectorization (16 byte alignment) via Eigen
-Configuration* firstCluster(){
-	
-	float points[NUM_OF_SPHERES*3];
-	for(int i=0; i<NUM_OF_SPHERES*3; i++){
-		points[i] = 0;
-	}
-	
-	Configuration* c = new Configuration(points);
-	
-	graph* g = (graph*) malloc(NUM_OF_SPHERES*sizeof(graph));
-	c->addGraph(g);
-	
-	for(int i=0; i<5; i++){
-		for(int j=1;j<4;j++){
-			c->addEdge(i, i+j);
-		}
-	}
-	c->addEdge(5, 6);
-	c->addEdge(5, 7);
-	c->addEdge(6, 7);
-	
-	
-	
-	return c;
-	
-}
-
+//NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
 int main(){
+	
 	
 	//BEGIN TESTING
 	
-	return 0;
-	//END TESTING
-	
 	//INITIALIZATION
+	Configuration* c = initialCluster();
+	if(!c){
+		return 1;
+	}
+	c->canonize();
 	std::queue<Configuration*> Queue;
 	Bank* bank = new Bank();
 	
-	Queue.push(firstCluster());
+	Queue.push(c);
+	
+	
+	
 
 	Configuration* current;
 	while(Queue.size() > 0){
@@ -56,10 +40,10 @@ int main(){
 		Queue.pop();
 		
 		current->canonize();
-		if(add(current)){ //returns 1 if already in bank, otherwise adds and returns 0
+		if(bank->add(current)){ //returns 1 if already in bank, otherwise adds and returns 0
 			continue;
 		}
-		
+		breakContactsAndAdd(current, Queue);
 	}
 	//START WITH ONE CLUSTER
 	//CREATE EMPTY BANK
@@ -89,4 +73,65 @@ int main(){
 }
 
 
-//FIXME
+Configuration* initialCluster(){
+	
+	float points[NUM_OF_SPHERES*3];
+	
+	
+	std::ifstream clusterFile;
+	clusterFile.open ("first_cluster8.txt");
+	if (clusterFile.is_open()){
+		for(int i=0; i<NUM_OF_SPHERES*3; i++){
+			clusterFile>>points[i];
+		}
+		
+		clusterFile.close();
+	}else{
+		std::cout<<"Failed to open initial cluster file!"<<std::endl;
+		return NULL;
+	}
+
+	
+	
+	graph g[NUM_OF_SPHERES];// = (graph*) malloc(NUM_OF_SPHERES*sizeof(graph));
+	memset(&g, 0, NUM_OF_SPHERES*sizeof(graph));
+	
+	Configuration* c = new Configuration(points, g);
+	
+	
+	for(int i=0; i<5; i++){
+		for(int j=1;j<4;j++){
+			c->addEdge(i, i+j);
+		}
+	}
+	c->addEdge(5, 6);
+	c->addEdge(5, 7);
+	c->addEdge(6, 7);
+	return c;
+}
+
+void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue){
+	int dim;
+	Configuration* copy;
+	for(int i=0; i<NUM_OF_SPHERES; i++){
+		for(int j=i+1; j<NUM_OF_SPHERES; j++){
+			if( !current->hasEdge(i,j) ){
+				continue;
+			}
+			copy = current->makeCopy();
+			copy->deleteEdge(i,j);
+			dim = dimensionOfTangentSpace(copy);
+			if(dim == 0){
+				breakContactsAndAdd(copy, Queue);
+				delete copy;
+			}
+			else if(dim == 1){
+				copy->walk();
+				Queue.push(copy);
+			}
+			else{
+				delete copy;
+			}
+		}
+	}
+}

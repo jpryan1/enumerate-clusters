@@ -61,6 +61,15 @@ void Configuration::canonize(){
 	
 }
 
+
+Configuration* Configuration::makeCopy(){
+	return new Configuration((float*) this->p, this->g);
+	
+	
+	
+}
+
+
 void Configuration::deleteEdge(int a, int b){
 	DELELEMENT(g+a, b);
 	DELELEMENT(g+b, a);
@@ -70,14 +79,39 @@ void Configuration::addEdge(int a, int b){
 	ADDONEEDGE(g, a, b, 1);
 }
 
+int Configuration::hasEdge(int i, int j){
+	return ((g[i] & bit[j])>0);
+}
+
+
+
+void Configuration::walk(){
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}
 
 
 void Configuration::printDetails(){
 	std::cout<<"\nPrinting config details"<<std::endl;
-	setword* g1 = (setword*) this->g;
+	graph* g1 =  this->g;
+	std::cout<<"Graph:"<<std::endl;
 	for(int i=0; i<NUM_OF_SPHERES; i++){
-		std::cout << std::bitset<64>(g1[i]) << std::endl;
+			std::cout << std::bitset<sizeof(graph)*8>(g1[i]) << std::endl;
+	}
+	std::cout<<"Points:"<<std::endl;
+	for(int i=0; i<NUM_OF_SPHERES*3; i+=3){
+		for(int j=0; j<3; j++){
+			std::cout<<(*(this->p))(i+j)<<" ";
+		}std::cout<<std::endl;
 	}
 	std::cout<<"Done printing config details\n"<<std::endl;
+	
 }
 
