@@ -13,12 +13,13 @@ int Bank::add(Configuration* c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
 int Bank::recursiveAdd(Configuration* c, BankNode* node){
 	int comp = c->compareGraph(node->configs[0]);
 	if(comp == 0){
-		if(/*point vecs are equal*/1){
-			return 0;
-		}else{
-			node->configs.push_back(c);
-			return 1;
+		for(int i=0; i<node->configs.size(); i++){
+			if(0){//c->equals(node->configs[i])){
+				return 0;
+			}
 		}
+		node->configs.push_back(c);
+		return 1;
 	}else if(comp < 0){
 		if(!node->left){
 			node->left = new BankNode();
@@ -62,6 +63,7 @@ void Bank::recPrint(BankNode* node){
 		std::cout<<"This node has no configs!"<<std::endl;
 	}else{
 		node->configs[0]->printDetails();
+		std::cout<<"This node has "<<node->configs.size()<<" configs"<<std::endl;
 	}
 	if(!node->left){
 		std::cout<<"No left child!"<<std::endl;
@@ -76,10 +78,6 @@ void Bank::recPrint(BankNode* node){
 		recPrint(node->right);
 	}
 	std::cout<<"Going back up..."<<std::endl;
-	
-	
-	
-	
 }
 
 

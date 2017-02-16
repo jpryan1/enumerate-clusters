@@ -8,34 +8,30 @@
 #include "nauty.h"
 
 using namespace Eigen;
-typedef Matrix<float, 3*NUM_OF_SPHERES, 1> ConfigVector;
+typedef Matrix<double, 3*NUM_OF_SPHERES, 1> ConfigVector;
 
 class Configuration{
 	
 public:
-	Configuration(float* points, graph* adj){
+	Configuration(double* points, graph* adj){
 		//obviously graph should be initialized here too, but we'll worry about that later
 		
-		p = new ConfigVector();
-		memcpy(p, points, 3*NUM_OF_SPHERES*sizeof(float));
+		memcpy(&p, points, 3*NUM_OF_SPHERES*sizeof(double));
 	
-		g = (graph*) malloc(NUM_OF_SPHERES*sizeof(graph));
 		memcpy(g, adj, NUM_OF_SPHERES*sizeof(graph));
 		
 	}
 	
-	~Configuration(){
-		delete p;
-		free(g);
-		//g is malloced (FOR NOW), p is allocated via a constructer
-	}
+	~Configuration(){}
 	
 	Configuration* makeCopy();
 	void printDetails();
 	
 	
-	int compareGraph(Configuration* other); //comparator for tree
-
+	int compareGraph(Configuration* other); //returns true if graphs match
+	
+	int matches(Configuration* other); //returns true if configurations are the same
+	
 	void canonize();
 	
 	void deleteEdge(int i, int j);
@@ -43,11 +39,18 @@ public:
 	
 	int hasEdge(int i, int j);
 	
+	int dimensionOfTangentSpace(bool useNumericalMethod);
+	int numerical_findDimension();
+	void populateRigidityMatrix(MatrixXd& rigid, ConfigVector& points);
+	int walk();
 	
-	void walk();
+	
 private:
-	ConfigVector* p; // contains 3*n floats for points in space
-	graph* g;
+	
+	ConfigVector p; // contains 3*n doubles for points in space
+	ConfigVector v;
+	graph g[NUM_OF_SPHERES];
+	
 	
 };
 

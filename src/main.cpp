@@ -8,13 +8,18 @@
 #include <queue>
 #include "Configuration.h"
 #include "Bank.h"
-#include "Dimension.h"
 
 
 Configuration* initialCluster();
 void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue);
-//TODO Consider fixed size vectorization (16 byte alignment) via Eigen
+
+
+//TODO NOW: Implement dimensionOfTangentSpace() and walk()
+
+//LATER Consider fixed size vectorization (16 byte alignment) via Eigen
 //NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
+
+
 int main(){
 	
 	
@@ -25,26 +30,38 @@ int main(){
 	if(!c){
 		return 1;
 	}
-	c->canonize();
-	std::queue<Configuration*> Queue;
-	Bank* bank = new Bank();
-	
-	Queue.push(c);
-	
-	
-	
 
-	Configuration* current;
-	while(Queue.size() > 0){
-		current = Queue.front();
-		Queue.pop();
-		
-		current->canonize();
-		if(bank->add(current)){ //returns 1 if already in bank, otherwise adds and returns 0
-			continue;
-		}
-		breakContactsAndAdd(current, Queue);
-	}
+	c->dimensionOfTangentSpace(true);
+	
+//	delete c;
+//	d->printDetails();
+//	delete d;
+	return 0;
+	
+//	c->canonize();
+//	std::queue<Configuration*> Queue;
+//	Bank* bank = new Bank();
+//	
+//	Queue.push(c);
+//	
+//	
+//	
+//
+//	Configuration* current;
+//	while(Queue.size() > 0){
+//		current = Queue.front();
+//		
+//		Queue.pop();
+//		
+//		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
+//			continue;
+//		}
+//		breakContactsAndAdd(current, Queue);
+//	}
+//	
+	
+	
+	
 	//START WITH ONE CLUSTER
 	//CREATE EMPTY BANK
 	//CREATE EMPTY QUEUE WITH FIRST CLUSTER
@@ -75,7 +92,7 @@ int main(){
 
 Configuration* initialCluster(){
 	
-	float points[NUM_OF_SPHERES*3];
+	double points[NUM_OF_SPHERES*3];
 	
 	
 	std::ifstream clusterFile;
@@ -120,14 +137,18 @@ void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queu
 			}
 			copy = current->makeCopy();
 			copy->deleteEdge(i,j);
-			dim = dimensionOfTangentSpace(copy);
+			copy->canonize();
+			
+			dim = copy->dimensionOfTangentSpace(false);
 			if(dim == 0){
 				breakContactsAndAdd(copy, Queue);
 				delete copy;
 			}
 			else if(dim == 1){
-				copy->walk();
-				Queue.push(copy);
+				if(copy->walk()){ //walking can fail!
+					copy->canonize(); //walking added an edge!
+					Queue.push(copy);
+				}
 			}
 			else{
 				delete copy;
@@ -135,3 +156,9 @@ void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queu
 		}
 	}
 }
+
+
+
+
+
+
