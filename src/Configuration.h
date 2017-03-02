@@ -6,13 +6,17 @@
 #include <iostream>
 #include "Eigen/Dense"
 #include "nauty.h"
-
+#include <vector>
 using namespace Eigen;
 typedef Matrix<double, 3*NUM_OF_SPHERES, 1> ConfigVector;
 
+typedef std::pair <int, int> Contact;
 class Configuration{
 	
 public:
+	
+	Configuration(){}
+	
 	Configuration(double* points, graph* adj){
 		//obviously graph should be initialized here too, but we'll worry about that later
 		
@@ -40,7 +44,12 @@ public:
 	int hasEdge(int i, int j);
 	
 	int dimensionOfTangentSpace(bool useNumericalMethod);
-	int numerical_findDimension();
+	int numerical_findDimension(MatrixXd& right_null_space);
+	
+	void project(ConfigVector& old, ConfigVector& proj);
+	void populate_F_vec(ConfigVector& initial, MatrixXd& F_vec);
+	
+	std::vector<Contact> checkForNewContacts(ConfigVector proj);
 	void populateRigidityMatrix(MatrixXd& rigid, ConfigVector& points);
 	int walk();
 	

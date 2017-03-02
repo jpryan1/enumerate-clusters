@@ -27,11 +27,12 @@ int main(){
 	
 	//INITIALIZATION
 	Configuration* c = initialCluster();
+	
 	if(!c){
 		return 1;
 	}
-
-	c->dimensionOfTangentSpace(true);
+	c->deleteEdge(0,1);
+	std::cout<<c->dimensionOfTangentSpace(true)<<std::endl;
 	
 //	delete c;
 //	d->printDetails();
@@ -128,6 +129,9 @@ Configuration* initialCluster(){
 }
 
 void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue){
+	
+	//TODO include lookup table to reduce redundancy?
+	
 	int dim;
 	Configuration* copy;
 	for(int i=0; i<NUM_OF_SPHERES; i++){
@@ -137,7 +141,7 @@ void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queu
 			}
 			copy = current->makeCopy();
 			copy->deleteEdge(i,j);
-			copy->canonize();
+			//copy->canonize(); Not necessary??
 			
 			dim = copy->dimensionOfTangentSpace(false);
 			if(dim == 0){
