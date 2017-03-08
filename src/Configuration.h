@@ -6,19 +6,23 @@
 #include <iostream>
 #include "Eigen/Dense"
 #include "nauty.h"
+#include "animation.h"
 #include <vector>
+
+
 using namespace Eigen;
 typedef Matrix<double, 3*NUM_OF_SPHERES, 1> ConfigVector;
 
 typedef std::pair <int, int> Contact;
+
+
+
 class Configuration{
-	
 public:
 	
 	Configuration(){}
 	
 	Configuration(double* points, graph* adj){
-		//obviously graph should be initialized here too, but we'll worry about that later
 		
 		memcpy(&p, points, 3*NUM_OF_SPHERES*sizeof(double));
 	
@@ -28,7 +32,7 @@ public:
 	
 	~Configuration(){}
 	
-	Configuration* makeCopy();
+	Configuration makeCopy();
 	void printDetails();
 	
 	
@@ -51,12 +55,13 @@ public:
 	
 	std::vector<Contact> checkForNewContacts(ConfigVector proj);
 	void populateRigidityMatrix(MatrixXd& rigid, ConfigVector& points);
-	int walk();
+	std::vector<Configuration> walk(Animation* animation);
 	
+	ConfigVector getP();
 	
 private:
-	
-	ConfigVector p; // contains 3*n doubles for points in space
+	ConfigVector p;
+	// contains 3*n doubles for points in space
 	ConfigVector v;
 	graph g[NUM_OF_SPHERES];
 	

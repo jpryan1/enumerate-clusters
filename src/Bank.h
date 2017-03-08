@@ -7,14 +7,13 @@
 #include <vector>
 
 
-
 struct BankNode{
 	std::vector<Configuration*> configs;
 	BankNode* left;
 	BankNode* right;
 };
 
-
+//s
 
 
 class Bank{

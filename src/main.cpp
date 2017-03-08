@@ -1,28 +1,51 @@
 
 #define MAXN WORDSIZE
 #define ONE_WORD_SETS 1
-//the above is specially used since our graphs will have small order, see nauty documentation
+//the above is especially used since our graphs will have small order, see nauty documentation
 
 #include <iostream>
 #include <fstream>
 #include <queue>
+#include <unistd.h>
+#include <thread>
+
 #include "Configuration.h"
 #include "Bank.h"
-
+#include "animation.h"
 
 Configuration* initialCluster();
 void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue);
 
 
-//TODO NOW: Implement dimensionOfTangentSpace() and walk()
+/*	TODO NOW:
+ *
+ *	Clean up code, compartmentalize
+ *	Implement lighting to make animation nicer
+ *	Include drawing of rods in framework in animation
+ *	Comment code, including animation code
+ *	update makefile
+ *
+ */
 
 //LATER Consider fixed size vectorization (16 byte alignment) via Eigen
 //NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
 
+void incrementP(ConfigVector* p, Animation* a){
+	for(int i=0; i<20; i++){
+		(*p)(0) = (*p)(0)+0.5;
+		a->setP(*p);
+		std::cout<<"i is "<<i<<std::endl;
+		usleep(1000000);
+	}
+}
 
-int main(){
+
+int main(int argc, char** argv){
 	
-	
+	//if(argc>1){
+		Animation animation;
+		animation.setup();
+	//}
 	//BEGIN TESTING
 	
 	//INITIALIZATION
@@ -31,9 +54,14 @@ int main(){
 	if(!c){
 		return 1;
 	}
+	ConfigVector p = c->getP();
+	animation.setP(p);
+	
 	c->deleteEdge(0,1);
 	std::cout<<c->dimensionOfTangentSpace(true)<<std::endl;
-	
+	std::thread walker(&Configuration::walk, c, &animation);
+	animation.draw();
+	walker.join();
 //	delete c;
 //	d->printDetails();
 //	delete d;
@@ -128,37 +156,36 @@ Configuration* initialCluster(){
 	return c;
 }
 
-void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue){
+void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue){
 	
 	//TODO include lookup table to reduce redundancy?
-	
-	int dim;
-	Configuration* copy;
-	for(int i=0; i<NUM_OF_SPHERES; i++){
-		for(int j=i+1; j<NUM_OF_SPHERES; j++){
-			if( !current->hasEdge(i,j) ){
-				continue;
-			}
-			copy = current->makeCopy();
-			copy->deleteEdge(i,j);
-			//copy->canonize(); Not necessary??
-			
-			dim = copy->dimensionOfTangentSpace(false);
-			if(dim == 0){
-				breakContactsAndAdd(copy, Queue);
-				delete copy;
-			}
-			else if(dim == 1){
-				if(copy->walk()){ //walking can fail!
-					copy->canonize(); //walking added an edge!
-					Queue.push(copy);
-				}
-			}
-			else{
-				delete copy;
-			}
-		}
-	}
+//	
+//	int dim;
+//	Configuration copy;
+//	std::vector<Configuration> walkedTo;
+//	for(int i=0; i<NUM_OF_SPHERES; i++){
+//		for(int j=i+1; j<NUM_OF_SPHERES; j++){
+//			if( !current.hasEdge(i,j) ){
+//				continue;
+//			}
+//			copy = current.makeCopy();
+//			copy.deleteEdge(i,j);
+//			//copy->canonize(); Not necessary??
+//			
+//			dim = copy.dimensionOfTangentSpace(false);
+//			if(dim == 0){
+//				breakContactsAndAdd(copy, Queue);
+//				
+//			}
+//			else if(dim == 1){
+//				walkedTo = copy.walk();
+//				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
+//					walkedTo[k].canonize(); //walking added an edge!
+//					Queue.push(walkedTo[k]);
+//				}
+//			}
+//		}
+//	}
 }
 
 
