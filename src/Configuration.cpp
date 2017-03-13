@@ -13,6 +13,8 @@
 #define MAX_NEWTON_ITERATIONS 1000
 
 
+Animation Configuration::animation;
+
 
 template<typename _Matrix_Type_> //This is taken from https://fuyunfei1.gitbooks.io/c-tips/content/pinv_with_eigen.html
 _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
@@ -231,8 +233,6 @@ void Configuration::populateRigidityMatrix(MatrixXd& rigid, ConfigVector& x){
 	rigid(row++, 5) = 1;
 	rigid(row++, 8) = 1;
 	
-	
-	
 }
 int Configuration::numerical_findDimension(MatrixXd& right_null_space){
 	std::vector<ConfigVector> basis;
@@ -339,13 +339,16 @@ void Configuration::populate_F_vec(ConfigVector& initial, MatrixXd& F_vec){
 }
 
 
-std::vector<Configuration> Configuration::walk(Animation* animation){
+std::vector<Configuration> Configuration::walk(){
 	std::vector<Configuration> newConfigs;
 	ConfigVector next, proj;
 	Configuration firststep;
 	ConfigVector direction = this->v;
 	MatrixXd rigid_x;
 	std::vector<Contact> contacts;
+	
+	double p, q;
+	
 	for(int i=0; i<2; i++){
 		
 		direction *=-1;
@@ -379,8 +382,11 @@ std::vector<Configuration> Configuration::walk(Animation* animation){
 		
 		MatrixXd right_null_space = rightlu.kernel();
 		
-		
+		p = right_null_space.rows();
+		q = right_null_space.cols();
 		right_null_space = right_null_space.householderQr().householderQ();
+		right_null_space = right_null_space.block(0,0,p,q);
+		
 		direction = right_null_space*right_null_space.transpose()*direction;
 		direction = direction/direction.norm();
 		//project?
@@ -391,8 +397,9 @@ std::vector<Configuration> Configuration::walk(Animation* animation){
 			next = DEL_S*direction + proj;
 			//std::cout<<"Beginning projection..."<<std::endl;
 			project(next, proj);
-			animation->setP(proj);
-			
+			if(1){
+				animation.setP(proj);
+			}
 			//std::cout<<"Ended projection!"<<std::endl;
 			contacts = checkForNewContacts(proj);
 			if(contacts.size()>1){
@@ -418,12 +425,15 @@ std::vector<Configuration> Configuration::walk(Animation* animation){
 			//Find right nullspace
 			FullPivLU<MatrixXd> rightlu(rigid_x);
 			MatrixXd right_null_space = rightlu.kernel();
+			p = right_null_space.rows();
+			q = right_null_space.cols();
 			right_null_space = right_null_space.householderQr().householderQ();
+			right_null_space = right_null_space.block(0,0,p,q);
+			
+		
 			direction = right_null_space*right_null_space.transpose()*direction;
 			//this is dangerous
 			direction = direction/direction.norm();
-			
-			//project?
 
 		}
 	}
@@ -486,4 +496,8 @@ void Configuration::printDetails(){
 
 ConfigVector Configuration::getP(){
 	return this->p;
+}
+
+graph* Configuration::getG(){
+	return this->g;
 }

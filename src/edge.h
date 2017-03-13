@@ -1,5 +1,5 @@
-#ifndef _SPHERE_H_
-#define _SPHERE_H_
+#ifndef _EDGE_H_
+#define _EDGE_H_
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -13,23 +13,23 @@
 #include "glew.h"
 #include <GLFW/glfw3.h>
 
-//THIS HAS BEEN BORROWED FROM http://stackoverflow.com/questions/5988686/creating-a-3d-sphere-in-opengl-using-visual-c
-class Sphere
+
+class Edge
 {
 	
 	protected:
 	std::vector<GLfloat> vertices_normals;
-//	std::vector<GLfloat> normals;
-//	std::vector<GLfloat> texcoords;
+
 	std::vector<GLushort> indices;
 	
 	public:
 	static GLint modelLoc;
 	
-	Sphere(float radius, unsigned int rings, unsigned int sectors);
-	Sphere(){}
-	
-	void draw(GLfloat x, GLfloat y, GLfloat z);
+	Edge(float radius, unsigned int slices);
+	Edge(){}
+
+	void draw(GLfloat x1, GLfloat y1, GLfloat z1,
+			  GLfloat x2, GLfloat y2, GLfloat z2);
 	
 };
 

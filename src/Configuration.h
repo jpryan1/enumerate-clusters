@@ -20,6 +20,9 @@ typedef std::pair <int, int> Contact;
 class Configuration{
 public:
 	
+	static Animation animation;
+	
+	
 	Configuration(){}
 	
 	Configuration(double* points, graph* adj){
@@ -55,9 +58,10 @@ public:
 	
 	std::vector<Contact> checkForNewContacts(ConfigVector proj);
 	void populateRigidityMatrix(MatrixXd& rigid, ConfigVector& points);
-	std::vector<Configuration> walk(Animation* animation);
+	std::vector<Configuration> walk();
 	
 	ConfigVector getP();
+	graph* getG();
 	
 private:
 	ConfigVector p;

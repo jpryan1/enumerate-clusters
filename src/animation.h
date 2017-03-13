@@ -9,33 +9,39 @@
 #include "glew.h"
 #include <GLFW/glfw3.h>
 #include "sphere.h"
+#include "edge.h"
 #include "Eigen/Dense"
+#include "nauty.h"
 
 using namespace Eigen;
 typedef Matrix<double, 3*NUM_OF_SPHERES, 1> ConfigVector;
 
-
-// GLEW
-
-
 class Animation{
 	public:
+	
 		Animation();
 		void setup();
+		void compileShaders();
 		void generateBuffers();
-		void generateSpheres();
+		void generateShapes();
 		void setProjectionMatrices();
 		void draw();
-		void drawSpheres();
+		void drawShapes();
 		void setP(ConfigVector update);
-	private:
-		Sphere spheres[NUM_OF_SPHERES];
-		GLFWwindow* window;
-		GLuint VBO, VAO, EBO, shaderProgram;
-		int width, height;
-		std::mutex mtx;
-		ConfigVector p;
+		void setG(graph* g);
+		void drawEdge(float x1, float y1, float z1, float x2, float y2, float z2);
 
+	
+	private:
+	
+		Sphere sphere;
+		Edge edge;
+		GLFWwindow* window;
+		GLuint s_VBO, e_VBO, e_VAO, s_VAO, s_EBO, e_EBO, shaderProgram, modelLoc, colorLoc, viewLoc;
+		int width, height;
+		std::mutex p_lock, g_lock;
+		ConfigVector p;
+		graph g[NUM_OF_SPHERES];
 
 };
 #endif

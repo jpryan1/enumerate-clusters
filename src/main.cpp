@@ -13,8 +13,8 @@
 #include "Bank.h"
 #include "animation.h"
 
-Configuration* initialCluster();
-void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queue);
+Configuration initialCluster();
+void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue);
 
 
 /*	TODO NOW:
@@ -30,15 +30,6 @@ void breakContactsAndAdd(Configuration* current, std::queue<Configuration*> Queu
 //LATER Consider fixed size vectorization (16 byte alignment) via Eigen
 //NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
 
-void incrementP(ConfigVector* p, Animation* a){
-	for(int i=0; i<20; i++){
-		(*p)(0) = (*p)(0)+0.5;
-		a->setP(*p);
-		std::cout<<"i is "<<i<<std::endl;
-		usleep(1000000);
-	}
-}
-
 
 int main(int argc, char** argv){
 	
@@ -49,26 +40,34 @@ int main(int argc, char** argv){
 	//BEGIN TESTING
 	
 	//INITIALIZATION
-	Configuration* c = initialCluster();
+	Configuration c = initialCluster();
 	
-	if(!c){
-		return 1;
-	}
-	ConfigVector p = c->getP();
+//	if(!c){
+//		return 1;
+//	}
+	
+	//c->deleteEdge(0,2);
+	
+	ConfigVector p = c.getP();
 	animation.setP(p);
 	
-	c->deleteEdge(0,1);
-	std::cout<<c->dimensionOfTangentSpace(true)<<std::endl;
-	std::thread walker(&Configuration::walk, c, &animation);
+	graph* g = c.getG();
+	animation.setG(g);
+	
+	
+	std::queue<Configuration> Queue;
+	
+	//Commented out until bug fixed
+	//std::thread walker(&breakContactsAndAdd, c, Queue);
 	animation.draw();
-	walker.join();
-//	delete c;
+//	walker.join();
+	delete &c;
 //	d->printDetails();
 //	delete d;
 	return 0;
 	
 //	c->canonize();
-//	std::queue<Configuration*> Queue;
+	
 //	Bank* bank = new Bank();
 //	
 //	Queue.push(c);
@@ -119,7 +118,7 @@ int main(int argc, char** argv){
 }
 
 
-Configuration* initialCluster(){
+Configuration initialCluster(){
 	
 	double points[NUM_OF_SPHERES*3];
 	
@@ -134,7 +133,7 @@ Configuration* initialCluster(){
 		clusterFile.close();
 	}else{
 		std::cout<<"Failed to open initial cluster file!"<<std::endl;
-		return NULL;
+		return Configuration();
 	}
 
 	
@@ -153,39 +152,40 @@ Configuration* initialCluster(){
 	c->addEdge(5, 6);
 	c->addEdge(5, 7);
 	c->addEdge(6, 7);
-	return c;
+	return *c;
 }
 
 void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue){
 	
 	//TODO include lookup table to reduce redundancy?
-//	
-//	int dim;
-//	Configuration copy;
-//	std::vector<Configuration> walkedTo;
-//	for(int i=0; i<NUM_OF_SPHERES; i++){
-//		for(int j=i+1; j<NUM_OF_SPHERES; j++){
-//			if( !current.hasEdge(i,j) ){
-//				continue;
-//			}
-//			copy = current.makeCopy();
-//			copy.deleteEdge(i,j);
-//			//copy->canonize(); Not necessary??
-//			
-//			dim = copy.dimensionOfTangentSpace(false);
-//			if(dim == 0){
-//				breakContactsAndAdd(copy, Queue);
-//				
-//			}
-//			else if(dim == 1){
-//				walkedTo = copy.walk();
-//				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
-//					walkedTo[k].canonize(); //walking added an edge!
-//					Queue.push(walkedTo[k]);
-//				}
-//			}
-//		}
-//	}
+
+	int dim;
+	Configuration copy;
+	std::vector<Configuration> walkedTo;
+	for(int i=0; i<NUM_OF_SPHERES; i++){
+		for(int j=i+1; j<NUM_OF_SPHERES; j++){
+			if( !current.hasEdge(i,j) ){
+				continue;
+			}
+			copy = current.makeCopy();
+			copy.deleteEdge(i,j);
+			//copy->canonize(); Not necessary??
+			graph* g = copy.getG();
+			Configuration::animation.setG(g);
+			dim = copy.dimensionOfTangentSpace(false);
+			if(dim == 0){
+				breakContactsAndAdd(copy, Queue);
+				
+			}
+			else if(dim == 1){
+				walkedTo = copy.walk();
+				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
+					walkedTo[k].canonize(); //walking added an edge!
+					Queue.push(walkedTo[k]);
+				}
+			}
+		}
+	}
 }
 
 
