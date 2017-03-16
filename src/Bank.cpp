@@ -1,7 +1,7 @@
 
 #include "Bank.h"
 
-int Bank::add(Configuration* c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
+int Bank::add(Configuration c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
 	if(root->configs.size()<1){
 		root->configs.push_back(c);
 		return 1;
@@ -10,11 +10,11 @@ int Bank::add(Configuration* c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
 }
 
 
-int Bank::recursiveAdd(Configuration* c, BankNode* node){
-	int comp = c->compareGraph(node->configs[0]);
+int Bank::recursiveAdd(Configuration c, BankNode* node){
+	int comp = c.compareGraph(node->configs[0]);
 	if(comp == 0){
 		for(int i=0; i<node->configs.size(); i++){
-			if(0){//c->equals(node->configs[i])){
+			if(c.matches(node->configs[i])){
 				return 0;
 			}
 		}
@@ -62,7 +62,7 @@ void Bank::recPrint(BankNode* node){
 	if(node->configs.size()<1){
 		std::cout<<"This node has no configs!"<<std::endl;
 	}else{
-		node->configs[0]->printDetails();
+		node->configs[0].printDetails();
 		std::cout<<"This node has "<<node->configs.size()<<" configs"<<std::endl;
 	}
 	if(!node->left){

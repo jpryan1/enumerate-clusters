@@ -6,6 +6,7 @@
 #define GLEW_STATIC
 #include <iostream>
 #include <mutex>
+#include <atomic>
 #include "glew.h"
 #include <GLFW/glfw3.h>
 #include "sphere.h"
@@ -19,7 +20,8 @@ typedef Matrix<double, 3*NUM_OF_SPHERES, 1> ConfigVector;
 class Animation{
 	public:
 	
-		Animation();
+		Animation(){}
+		void initialize();
 		void setup();
 		void compileShaders();
 		void generateBuffers();
@@ -31,14 +33,15 @@ class Animation{
 		void setG(graph* g);
 		void drawEdge(float x1, float y1, float z1, float x2, float y2, float z2);
 
-	
+	void quit();
 	private:
-	
+		GLuint s_VBO, e_VBO, e_VAO, s_VAO, s_EBO, e_EBO, shaderProgram, modelLoc, colorLoc, viewLoc;
+		int width, height;
+		std::atomic<bool> shouldQuit;
 		Sphere sphere;
 		Edge edge;
 		GLFWwindow* window;
-		GLuint s_VBO, e_VBO, e_VAO, s_VAO, s_EBO, e_EBO, shaderProgram, modelLoc, colorLoc, viewLoc;
-		int width, height;
+		
 		std::mutex p_lock, g_lock;
 		ConfigVector p;
 		graph g[NUM_OF_SPHERES];

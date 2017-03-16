@@ -20,28 +20,42 @@ typedef std::pair <int, int> Contact;
 class Configuration{
 public:
 	
-	static Animation animation;
+	static Animation* animation;
 	
 	
 	Configuration(){}
 	
 	Configuration(double* points, graph* adj){
-		
 		memcpy(&p, points, 3*NUM_OF_SPHERES*sizeof(double));
 	
 		memcpy(g, adj, NUM_OF_SPHERES*sizeof(graph));
 		
+		this->num_of_contacts = 0;
+		for(int i=0; i<NUM_OF_SPHERES-1; i++){
+			for(int j=i+1; j<NUM_OF_SPHERES;j++){
+				if(this->hasEdge(i,j)){
+					this->num_of_contacts++;
+				}
+			}
+		}
+
 	}
 	
 	~Configuration(){}
+	
+	Configuration(const Configuration& other){
+		num_of_contacts = other.num_of_contacts;
+		memcpy(&p, &other.p, 3*NUM_OF_SPHERES*sizeof(double));
+		memcpy(g, other.g, NUM_OF_SPHERES*sizeof(graph));
+	}
 	
 	Configuration makeCopy();
 	void printDetails();
 	
 	
-	int compareGraph(Configuration* other); //returns true if graphs match
+	int compareGraph(Configuration& other); //returns true if graphs match
 	
-	int matches(Configuration* other); //returns true if configurations are the same
+	int matches(Configuration& other); //returns true if configurations are the same
 	
 	void canonize();
 	
@@ -62,8 +76,11 @@ public:
 	
 	ConfigVector getP();
 	graph* getG();
+
+	static int counter;
 	
 private:
+	int num_of_contacts;
 	ConfigVector p;
 	// contains 3*n doubles for points in space
 	ConfigVector v;

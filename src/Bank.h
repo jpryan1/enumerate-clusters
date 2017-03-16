@@ -8,7 +8,7 @@
 
 
 struct BankNode{
-	std::vector<Configuration*> configs;
+	std::vector<Configuration> configs;
 	BankNode* left;
 	BankNode* right;
 };
@@ -33,14 +33,14 @@ public:
 		delete root;
 	}
 	
-	int add(Configuration* c);//RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
+	int add(Configuration c);//RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
 	
 	void printDetails();
 	
 private:
 	
 	BankNode* root;
-	int recursiveAdd(Configuration* c, BankNode* node);
+	int recursiveAdd(Configuration c, BankNode* node);
 	void recPrint(BankNode* node);
 
 };

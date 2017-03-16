@@ -37,11 +37,11 @@ const GLchar* fragmentShaderSource = "#version 330 core\n"
 "	color = vec4(result, 1.0f);\n"
 "}\n\0";
 
-Animation::Animation(){
+void Animation::initialize(){
 	//Initialize GLFW
 	if (!glfwInit())
 	return;
-	
+	shouldQuit = false;
 	//Set GLFW settings
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -122,6 +122,7 @@ void Animation::compileShaders(){
 
 
 void Animation::setup(){
+	initialize();
 	compileShaders();
 	generateBuffers();
 	generateShapes();
@@ -239,7 +240,7 @@ void Animation::draw(){
 	//entire program ending
 	GLfloat radius, camX, camZ;
 	radius = 6.0f;
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(window) && !shouldQuit)
 	{
 		/* Poll for and process events */
 		glfwPollEvents();
@@ -268,7 +269,6 @@ void Animation::draw(){
 	glDeleteBuffers(1, &e_VBO);
 	glDeleteBuffers(1, &e_EBO);
 	glfwTerminate();
-	exit(0);
 	
 }
 
@@ -345,6 +345,11 @@ void Animation::drawEdge(float x1, float y1, float z1, float x2, float y2, float
 	
 	
 }
+
+void Animation::quit(){
+	shouldQuit = true;
+}
+
 
 void Animation::setP(ConfigVector update){
 	p_lock.lock();

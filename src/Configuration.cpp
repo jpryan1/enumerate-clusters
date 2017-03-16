@@ -13,8 +13,9 @@
 #define MAX_NEWTON_ITERATIONS 1000
 
 
-Animation Configuration::animation;
+Animation* Configuration::animation;
 
+int Configuration::counter;
 
 template<typename _Matrix_Type_> //This is taken from https://fuyunfei1.gitbooks.io/c-tips/content/pinv_with_eigen.html
 _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
@@ -26,10 +27,10 @@ _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeri
 
 
 
-int Configuration::compareGraph(Configuration* other){
+int Configuration::compareGraph(Configuration& other){
 	
 	setword* g1 = (setword*) this->g;
-	setword* g2 = (setword*) other->g;
+	setword* g2 = (setword*) other.g;
 	
 	for(int i=0; i<NUM_OF_SPHERES; i++){
 		if(g1[i]<g2[i]){
@@ -40,10 +41,10 @@ int Configuration::compareGraph(Configuration* other){
 	}return 0;
 }
 
-int Configuration::matches(Configuration* other){
+int Configuration::matches(Configuration& other){
 	//graphs have already been checked, just check points.
 	
-	return 1;
+	return 0;
 	//.
 }
 
@@ -65,7 +66,8 @@ void Configuration::canonize(){
 	options.getcanon = true;
 	
 	statsblk stats;
-//	
+//
+	
 	graph canonized[NUM_OF_SPHERES];
 //	
 	densenauty(this->g, lab, ptn, orbits, &options, &stats, 1, NUM_OF_SPHERES, canonized);
@@ -93,10 +95,12 @@ Configuration Configuration::makeCopy(){
 void Configuration::deleteEdge(int a, int b){
 	DELELEMENT(g+a, b);
 	DELELEMENT(g+b, a);
+	this->num_of_contacts--;
 }
 
 void Configuration::addEdge(int a, int b){
 	ADDONEEDGE(g, a, b, 1);
+	this->num_of_contacts++;
 }
 
 int Configuration::hasEdge(int i, int j){
@@ -110,17 +114,9 @@ int Configuration::dimensionOfTangentSpace(bool useNumericalMethod = true){
 	//first we calculate dimensions of matrix
 	//- rigidity matrix has dimension numContacts x 3*numofspheres
 
-	int numOfContacts = 0;
-	for(int i=0; i<NUM_OF_SPHERES-1; i++){
-		for(int j=i+1; j<NUM_OF_SPHERES;j++){
-			if(this->hasEdge(i,j)){
-				numOfContacts++;
-			}
-		}
-	}
-	
+
 	//Now allocate
-	MatrixXd rigid_x = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
+	MatrixXd rigid_x = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 	
 	//Now populate
 	populateRigidityMatrix( rigid_x, this->p);
@@ -154,7 +150,7 @@ int Configuration::dimensionOfTangentSpace(bool useNumericalMethod = true){
 	//Compute Q matrices, check for sign-definiteness via eigendecomposition
 	
 	MatrixXd Q = MatrixXd::Zero( V, V);
-	MatrixXd R_vi = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
+	MatrixXd R_vi = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 	ConfigVector vi;
 	VectorXd eigs(V);
 	bool flag;
@@ -163,7 +159,7 @@ int Configuration::dimensionOfTangentSpace(bool useNumericalMethod = true){
 	for(int k=0; k< W; k++){
 		for(int i=0; i<V; i++){
 			vi << right_null_space.col(i);
-			rigid_x = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
+			rigid_x = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 			populateRigidityMatrix(R_vi, vi);
 			for(int j=0; j<V; j++){
 				Q(i,j) = left_null_space.col(k).transpose() * R_vi * right_null_space.col(j);
@@ -195,7 +191,7 @@ int Configuration::dimensionOfTangentSpace(bool useNumericalMethod = true){
 			}
 //
 			vi=Matrix<double, 3*NUM_OF_SPHERES, 1>::Zero(); //zero out for next iteration
-			R_vi = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
+			R_vi = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 
 		}
 		
@@ -285,24 +281,16 @@ void Configuration::project(ConfigVector& old, ConfigVector& proj){ // TODO incl
 	//this function takes the vector OLD and solves newtons method on the constraint equations to find a zero.
 	ConfigVector initial = old; //this makes a copy
 	double jump_size, F_size;
-	//The following is a repeat of what's already been done, in optimization this MUST BE DONE AWAY WITH.
-	int numOfContacts = 0;
-	for(int i=0; i<NUM_OF_SPHERES-1; i++){
-		for(int j=i+1; j<NUM_OF_SPHERES;j++){
-			if(this->hasEdge(i,j)){
-				numOfContacts++;
-			}
-		}
-	}
+
 	//Now allocate
 	MatrixXd rigid_x;
 	
-	MatrixXd jacob_inv(3*NUM_OF_SPHERES, numOfContacts+6);
-	MatrixXd F_vec(numOfContacts+6, 1);
+	MatrixXd jacob_inv(3*NUM_OF_SPHERES, this->num_of_contacts+6);
+	MatrixXd F_vec(this->num_of_contacts+6, 1);
 	int iterations = 0;
 	do{
 		iterations++;
-		rigid_x = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES); //zero it out
+		rigid_x = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES); //zero it out
 		populateRigidityMatrix( rigid_x, initial); //repopulate it wrt new initial vector
 		rigid_x *=2; //now its the jacobian
 		jacob_inv = pseudoInverse(rigid_x);//(rigid_x.transpose()*rigid_x).inverse()*rigid_x;
@@ -340,109 +328,108 @@ void Configuration::populate_F_vec(ConfigVector& initial, MatrixXd& F_vec){
 
 
 std::vector<Configuration> Configuration::walk(){
+	std::cout<<counter<<std::endl;
+	counter++;
 	std::vector<Configuration> newConfigs;
 	ConfigVector next, proj;
 	Configuration firststep;
-	ConfigVector direction = this->v;
 	MatrixXd rigid_x;
 	std::vector<Contact> contacts;
-	
 	double p, q;
 	
+	//We take steps in both directions along the 1D manifold (hence the two-step for-loop)
+	ConfigVector direction = this->v;
 	for(int i=0; i<2; i++){
-		
 		direction *=-1;
+		
+		//Take a teensy step in that direction...
 		next = DEL_S*direction + this->p;
+		
+		//...and project back onto the manifold
 		project(next,proj);
 		
+		//We create a Configuration corresponding to that first step
+		// to check its tangent space dimension
 		firststep = Configuration((double* )&this->p, (graph*) &this->g);
+		
 		if(firststep.dimensionOfTangentSpace()!=1){
+			
+			//Any gain or loss in dimension, and we ditch this direction
 			continue;
-		}
-		contacts = checkForNewContacts(proj);
-		if(contacts.size()>0){
-			continue;
-		}
-		int numOfContacts = 0;
-		for(int i=0; i<NUM_OF_SPHERES-1; i++){
-			for(int j=i+1; j<NUM_OF_SPHERES;j++){
-				if(this->hasEdge(i,j)){
-					numOfContacts++;
-				}
-			}
+			
 		}
 		
+		contacts = checkForNewContacts(proj);
+		if(contacts.size()>0){
+			//If taking that step resulted in a new contact, don't walk in that direction
+			continue;
+		}
+		
+		
+		//Now we're committed to walking along the manifold in that direction
+		
 		//Now populate
-		rigid_x = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
-	
+		rigid_x = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 		populateRigidityMatrix( rigid_x, proj);
 		
 		//Find right nullspace
 		FullPivLU<MatrixXd> rightlu(rigid_x);
-		
 		MatrixXd right_null_space = rightlu.kernel();
 		
+		//Get orthonormalized right nullspace (the Q in QR factorization)
 		p = right_null_space.rows();
 		q = right_null_space.cols();
 		right_null_space = right_null_space.householderQr().householderQ();
 		right_null_space = right_null_space.block(0,0,p,q);
 		
+		//Project direction vector onto right nullspace
 		direction = right_null_space*right_null_space.transpose()*direction;
 		direction = direction/direction.norm();
-		//project?
-	//	direction = project direction onto nullspace
-		std::cout<<"Entering while loop"<<std::endl;
-		double duration;
+	
 		while(1){
+			//Take a step...
 			next = DEL_S*direction + proj;
-			//std::cout<<"Beginning projection..."<<std::endl;
+			//...and project back onto manifold
 			project(next, proj);
-			if(1){
-				animation.setP(proj);
+			//Update animation
+			if(animation){
+				animation->setP(proj);
 			}
-			//std::cout<<"Ended projection!"<<std::endl;
+			//Check if we have any new contacts
 			contacts = checkForNewContacts(proj);
+			
 			if(contacts.size()>1){
-				std::cout<<"MANY CONTACTS!"<<std::endl;
+				std::cout<<"Many contacts found!"<<std::endl;
+				//(We don't deal with this right now)
+				exit(0);
 			}
 			else if(contacts.size()==1){
-				//we found a new config. Make copy and add it.
+				//We reached the end of our walk!
+				//Add the new configuration to our newConfigs list.
 				Configuration newC((double*) &proj,  (graph*) &this->g);
 				newC.addEdge(contacts[0].first, contacts[0].second);
 				newConfigs.push_back(newC);
-				std::cout<<"BREAKING WHILE LOOP!!"<<std::endl;
 				break;
 			}
 			
 			
+			//The below is the projection of the direction vector onto the right nullspace
+			// as described above
 			
-			//The below is just the process of updating the direction wrt the projected vector
-			//Now populate
-			rigid_x = MatrixXd::Zero(numOfContacts+6, 3*NUM_OF_SPHERES);
-			
+			rigid_x = MatrixXd::Zero(this->num_of_contacts+6, 3*NUM_OF_SPHERES);
 			populateRigidityMatrix( rigid_x, proj);
-			
-			//Find right nullspace
-			FullPivLU<MatrixXd> rightlu(rigid_x);
-			MatrixXd right_null_space = rightlu.kernel();
+			rightlu = FullPivLU<MatrixXd>(rigid_x);
+			right_null_space = rightlu.kernel();
 			p = right_null_space.rows();
 			q = right_null_space.cols();
 			right_null_space = right_null_space.householderQr().householderQ();
 			right_null_space = right_null_space.block(0,0,p,q);
-			
-		
 			direction = right_null_space*right_null_space.transpose()*direction;
-			//this is dangerous
 			direction = direction/direction.norm();
 
 		}
 	}
 	
-	
-	/*For each direction, we alternate between taking a step of size ∆s along the manifold in the tangent direction vk, and projecting back onto the manifold. After each projection we form the rigidity matrix in (S2), compute its null space V, and find the next tangent direction vk+1 by the least-squares projection of vk onto V. This ensures that we keep going in the same direction, i.e. we don’t accidentally start moving backwards along the manifold, and it provides an estimate of the single tangent direction when the path is singular.
-	After the first step, we check the dimension as in section 2.1, and stop moving if this dimension has increased or decreased. For n = 13 it increased for 3851 paths and decreased for 23. We do not check the dimension after the first step, as this is very time-consuming.
-	*/
-	std::cout<<"Walk is ended!"<<std::endl;
 	return newConfigs;
 	
 	
@@ -452,9 +439,12 @@ std::vector<Contact> Configuration::checkForNewContacts(ConfigVector proj){
 	double dist;
 	for(int i=0; i<NUM_OF_SPHERES-1; i++){
 		for(int j=i+1; j<NUM_OF_SPHERES; j++){
+//			This is commented out for now. It would save time, but right now we
+//			leave in a check for broken configurations
 //			if(this->hasEdge(i,j)){
 //				continue;
 //			}
+			
 			dist = 0;
 			for(int k=0; k<3; k++){
 				dist += pow(proj(3*i+k) - proj(3*j+k) , 2);

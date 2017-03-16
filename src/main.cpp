@@ -14,8 +14,8 @@
 #include "animation.h"
 
 Configuration initialCluster();
-void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue);
-
+void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue);
+void enumerateClusters(Configuration* initial, Bank* bank);
 
 /*	TODO NOW:
  *
@@ -33,89 +33,71 @@ void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue
 
 int main(int argc, char** argv){
 	
-	//if(argc>1){
-		Animation animation;
-		animation.setup();
-	//}
-	//BEGIN TESTING
+	Animation animation;
+	Configuration::counter = 0;
 	
-	//INITIALIZATION
+	//Start with one cluster, built by iteratively adding one vertex with three edges to a triangle
 	Configuration c = initialCluster();
+	Bank* bank = new Bank();
 	
-//	if(!c){
-//		return 1;
-//	}
+
+	if(argc>1){
+		animation.setup();
 	
-	//c->deleteEdge(0,2);
+				//Set the initial position data for the animation
+		ConfigVector p = c.getP();
+		animation.setP(p);
 	
-	ConfigVector p = c.getP();
-	animation.setP(p);
+		//Set the initial graph data for the animation
+		graph* g = c.getG();
+		animation.setG(g);
 	
-	graph* g = c.getG();
-	animation.setG(g);
+		// By giving the configuration class a pointer to the animation object, methods from within
+		// that class may pass data to the animation (this is necessary in the walk method)
+		Configuration::animation = &animation;
 	
-	
-	std::queue<Configuration> Queue;
-	
-	//Commented out until bug fixed
-	//std::thread walker(&breakContactsAndAdd, c, Queue);
-	animation.draw();
-//	walker.join();
-	delete &c;
-//	d->printDetails();
-//	delete d;
+		
+		/*
+		 We take a multithreaded approach - the main thread runs the animation, and the second thread
+		runs the program which enumerates the clusters.
+		 */
+		std::thread enumerate(enumerateClusters, &c, bank);
+		animation.draw();
+		enumerate.join();
+	}else{
+		enumerateClusters(&c, bank);
+	}
 	return 0;
 	
-//	c->canonize();
 	
-//	Bank* bank = new Bank();
-//	
-//	Queue.push(c);
-//	
-//	
-//	
-//
-//	Configuration* current;
-//	while(Queue.size() > 0){
-//		current = Queue.front();
-//		
-//		Queue.pop();
-//		
-//		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
-//			continue;
-//		}
-//		breakContactsAndAdd(current, Queue);
-//	}
-//	
-	
-	
-	
-	//START WITH ONE CLUSTER
-	//CREATE EMPTY BANK
-	//CREATE EMPTY QUEUE WITH FIRST CLUSTER
-	
-	//FOR EACH ITEM IN QUEUE
-		//CONFIG = DEQUEUE()
-		//SET TO CANONICAL FORM
-		//IF ALREADY IN BANK
-		//	CONTINUE
-		//ELSE
-		//	PUT IN BANK
-		//	ITERATE THROUGH SUBSETS OF CONTACTS
-		//		BREAK SUBSET
-		//		CHECK DIMENSION OF TANGENT SPACE TO SOLUTION AT T=0
-		//		IF DIM = 1,
-		//			WALK ALONG, ARRIVE AT NEW CLUSTER //(check rigidity)
-		//			ADD NEW CLUSTER TO QUEUE
-		//		ENDIF
-		//	ENDITERATE
-		//ENDIF
-		//
-	//ENDFOR
+}
+
+
+
+void enumerateClusters(Configuration* initial, Bank* bank){
+	std::queue<Configuration> Queue;
+	Queue.push(*initial);
+	Configuration current;
+	while(Queue.size() > 0){
+		current = Queue.front();
+		std::cout<<"POP"<<std::endl;
+		Queue.pop();
+		
+		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
+			continue;
+		}
+		breakContactsAndAdd(current, Queue);
+		
+	}
 	
 	
 	
 }
+
+
+
+
+
 
 
 Configuration initialCluster(){
@@ -155,29 +137,36 @@ Configuration initialCluster(){
 	return *c;
 }
 
-void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue){
+void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue){
 	
 	//TODO include lookup table to reduce redundancy?
-
+	
 	int dim;
 	Configuration copy;
 	std::vector<Configuration> walkedTo;
+	
+	//This double for-loop iterates through all edges in the graph of current
 	for(int i=0; i<NUM_OF_SPHERES; i++){
 		for(int j=i+1; j<NUM_OF_SPHERES; j++){
 			if( !current.hasEdge(i,j) ){
 				continue;
 			}
+			
+			// We make a copy, delete an edge of that copy, then either enter that copy into
+			// the queue, or delete it, depending on whether it is rigid.
 			copy = current.makeCopy();
 			copy.deleteEdge(i,j);
-			//copy->canonize(); Not necessary??
-			graph* g = copy.getG();
-			Configuration::animation.setG(g);
+			
 			dim = copy.dimensionOfTangentSpace(false);
 			if(dim == 0){
+				Queue.push(copy);
 				breakContactsAndAdd(copy, Queue);
-				
 			}
 			else if(dim == 1){
+				
+				graph* g = copy.getG();
+				if(Configuration::animation) Configuration::animation->setG(g);
+				
 				walkedTo = copy.walk();
 				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
 					walkedTo[k].canonize(); //walking added an edge!
@@ -186,6 +175,7 @@ void breakContactsAndAdd(Configuration current, std::queue<Configuration>& Queue
 			}
 		}
 	}
+	
 }
 
 
