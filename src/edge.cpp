@@ -29,7 +29,7 @@ Edge::Edge(float radius, unsigned int slices)
 		*v++ = radius*y;
 		*v++ = radius*z;
 		
-		*v++ = 0;
+		*v++ = 1;
 		*v++ = y;
 		*v++ = z;
 		
@@ -60,15 +60,20 @@ Edge::Edge(float radius, unsigned int slices)
 void Edge::draw(GLfloat x1, GLfloat y1, GLfloat z1,
 				GLfloat x2, GLfloat y2, GLfloat z2)
 {
-	
-	
 	glm::mat4 transform;
+	
+	if(x1 == 1 && fabs(y1) <1e-5 &&  fabs(z1) <1e-5 && x2==0 && y2 == 0 && z2 == 0){
+		//This basically says when not to move the edge. it's a bit of a hack
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform));
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid*) 0);
+		return;
+	}
 	transform = glm::translate(transform, glm::vec3(x1,y1,z1));
 	
 	glm::vec3 xaxis( 1,0,0);
 	glm::vec3 initial( x2-x1, y2-y1, z2-z1);
 	float rot_angle = acos( glm::dot(initial, xaxis) );
-	if( fabs(rot_angle) > 1e-5 )
+	if( fabs(rot_angle) > 1e-5)
 	{
 		glm::vec3 rot_axis = glm::normalize( glm::cross( initial,xaxis) );
 		transform = glm::rotate(transform, -rot_angle, rot_axis);
@@ -77,7 +82,6 @@ void Edge::draw(GLfloat x1, GLfloat y1, GLfloat z1,
 	
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform));
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, (GLvoid*) 0);
-	
 }
 
 

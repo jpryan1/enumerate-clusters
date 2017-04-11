@@ -24,6 +24,7 @@ class Bank{
 public:
 	Bank(){
 		root = new BankNode();
+		_size = 0;
 	}
 	
 	~Bank(){
@@ -34,11 +35,11 @@ public:
 	}
 	
 	int add(Configuration c);//RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
-	
+	int size();
 	void printDetails();
 	
 private:
-	
+	int _size;
 	BankNode* root;
 	int recursiveAdd(Configuration c, BankNode* node);
 	void recPrint(BankNode* node);

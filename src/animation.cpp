@@ -28,7 +28,7 @@ const GLchar* fragmentShaderSource = "#version 330 core\n"
 "void main()\n"
 "{\n"
 "	vec3 lightPos = vec3(0, 10, 10);"
-"	vec3 ambient = vec3( 0.3, 0.3, 0.3);\n"
+"	vec3 ambient = vec3( 0.7, 0.7, 0.7);\n"
 "// Diffuse\n"
 "	vec3 lightDir = normalize(lightPos - fragPos);\n"
 "	float diff = max(dot(normal, lightDir), 0.0);\n"
@@ -215,7 +215,7 @@ void Animation::setProjectionMatrices(){
 	
 	//View is at z = +8
 	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -6.0f));
-	
+//	view = glm::rotate(view, (float) -(M_PI/8.0), glm::vec3(0.0f, 1.0f, 0.0f));
 	//Projection has 45 degree FoV, aspect ratio given by the window's, and
 	//records only those objects within 0.1f and 100.0f of the "camera"
 	projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
@@ -250,11 +250,11 @@ void Animation::draw(){
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//Draw!
-//		camX = sin(glfwGetTime()*0.5) * radius;
-//		camZ = cos(glfwGetTime()*0.5) * radius;
-//		glm::mat4 view;
-//		view = glm::lookAt(glm::vec3(camX, 1.0, camZ), glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-//		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		camX = sin(glfwGetTime()) * radius;
+		camZ = cos(glfwGetTime()) * radius;
+		glm::mat4 view;
+		view = glm::lookAt(glm::vec3(camX, 0, camZ), glm::vec3(0.0, 0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		drawShapes();
 		
 		/* Swap front and back buffers */
@@ -298,13 +298,10 @@ void Animation::drawShapes(){
 	}
 	g_lock.unlock();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
 	glBindVertexArray(0);
-
 	
-	glUniform4f(colorLoc, 1.0f, 0,0, 1.0f);
-
 	
+	glUniform4f(colorLoc, 87.0/255.0, 6.0/255.0, 140.0/255.0, 1.0f);
 	glBindVertexArray(s_VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 	for(i=0; i<NUM_OF_SPHERES; i++){
@@ -316,35 +313,6 @@ void Animation::drawShapes(){
 	p_lock.unlock();
 }
 
-
-void Animation::drawEdge(float x1, float y1, float z1, float x2, float y2, float z2){
-	//draw just a rectangle along same z-plane with corners on the centers +- 0.05
-	GLfloat verts[12];
-	GLushort inds[6];
-	inds[0] = 0;
-	inds[1] = 1;
-	inds[2] = 2;
-	inds[3] = 0;
-	inds[4] = 2;
-	inds[5] = 3;
-	verts[0] = x1;
-	verts[1] = y1+0.05;
-	verts[2] = z1;
-	verts[3] = x2;
-	verts[4] = y2+0.05;
-	verts[5] = z2;
-	verts[6] = x2;
-	verts[7] = y2-0.05;
-	verts[8] = z2;
-	verts[9] = x1;
-	verts[10] = y1-0.05;
-	verts[11] = z1;
-	glBufferData(GL_ARRAY_BUFFER, 12*sizeof(GLfloat), &verts[0], GL_DYNAMIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*sizeof(GLushort), &inds[0], GL_DYNAMIC_DRAW);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (GLvoid*) 0);
-	
-	
-}
 
 void Animation::quit(){
 	shouldQuit = true;

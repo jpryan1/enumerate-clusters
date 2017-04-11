@@ -2,7 +2,7 @@
 #ifndef  _ANIMATION_H_    /* only process this file once */
 #define  _ANIMATION_H_
 
-#define NUM_OF_SPHERES 8
+#define NUM_OF_SPHERES 10
 #define GLEW_STATIC
 #include <iostream>
 #include <mutex>
@@ -31,9 +31,7 @@ class Animation{
 		void drawShapes();
 		void setP(ConfigVector update);
 		void setG(graph* g);
-		void drawEdge(float x1, float y1, float z1, float x2, float y2, float z2);
-
-	void quit();
+		void quit();
 	private:
 		GLuint s_VBO, e_VBO, e_VAO, s_VAO, s_EBO, e_EBO, shaderProgram, modelLoc, colorLoc, viewLoc;
 		int width, height;

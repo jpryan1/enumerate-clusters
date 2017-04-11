@@ -34,13 +34,13 @@ void enumerateClusters(Configuration* initial, Bank* bank);
 int main(int argc, char** argv){
 	
 	Animation animation;
-	Configuration::counter = 0;
 	
 	//Start with one cluster, built by iteratively adding one vertex with three edges to a triangle
 	Configuration c = initialCluster();
 	Bank* bank = new Bank();
 	
 
+	
 	if(argc>1){
 		animation.setup();
 	
@@ -57,6 +57,7 @@ int main(int argc, char** argv){
 		Configuration::animation = &animation;
 	
 		
+		
 		/*
 		 We take a multithreaded approach - the main thread runs the animation, and the second thread
 		runs the program which enumerates the clusters.
@@ -67,6 +68,7 @@ int main(int argc, char** argv){
 	}else{
 		enumerateClusters(&c, bank);
 	}
+	//bank->printDetails();
 	return 0;
 	
 	
@@ -75,22 +77,42 @@ int main(int argc, char** argv){
 
 
 void enumerateClusters(Configuration* initial, Bank* bank){
+	double t = time(0);
 	std::queue<Configuration> Queue;
 	Queue.push(*initial);
 	Configuration current;
+	int hyper = 1;
+	int hypo = 1;
+	int total = 0;
+	Configuration oneohfour;
+	Configuration twosixthree;
+	
 	while(Queue.size() > 0){
 		current = Queue.front();
-		std::cout<<"POP"<<std::endl;
 		Queue.pop();
-		
 		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
 			continue;
+		}
+		if(current.num_of_contacts<24){
+			std::cout<<"Just added hypostatic to bank "<<hypo++<<" "<<current.num_of_contacts<<std::endl;
+			
+			if(Configuration::animation){
+				current.show(9);
+			}
+
+		}
+		if(current.num_of_contacts>24){
+			std::cout<<"Just added hyperstatic to bank "<<hyper++<<" "<<current.num_of_contacts<<std::endl;
 		}
 		breakContactsAndAdd(current, Queue);
 		
 	}
 	
 	
+	
+	std::cout<<"Bank is size "<<bank->size()<<std::endl;
+	t = time(0) - t;
+	std::cout<<"Elapsed time: "<<t<<" seconds."<<std::endl;
 	
 }
 
@@ -120,27 +142,28 @@ Configuration initialCluster(){
 
 	
 	
-	graph g[NUM_OF_SPHERES];// = (graph*) malloc(NUM_OF_SPHERES*sizeof(graph));
+	graph g[NUM_OF_SPHERES];
 	memset(&g, 0, NUM_OF_SPHERES*sizeof(graph));
 	
-	Configuration* c = new Configuration(points, g);
+	Configuration* c = new Configuration(points, g, false);
 	
 	
-	for(int i=0; i<5; i++){
+	for(int i=0; i<NUM_OF_SPHERES-3; i++){
 		for(int j=1;j<4;j++){
 			c->addEdge(i, i+j);
 		}
 	}
-	c->addEdge(5, 6);
-	c->addEdge(5, 7);
-	c->addEdge(6, 7);
+	c->addEdge(NUM_OF_SPHERES-3, NUM_OF_SPHERES-2);
+	c->addEdge(NUM_OF_SPHERES-3, NUM_OF_SPHERES-1);
+	c->addEdge(NUM_OF_SPHERES-2, NUM_OF_SPHERES-1);
+	
+	c->canonize();
 	return *c;
 }
 
 void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue){
 	
 	//TODO include lookup table to reduce redundancy?
-	
 	int dim;
 	Configuration copy;
 	std::vector<Configuration> walkedTo;
@@ -151,25 +174,26 @@ void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queu
 			if( !current.hasEdge(i,j) ){
 				continue;
 			}
-			
 			// We make a copy, delete an edge of that copy, then either enter that copy into
 			// the queue, or delete it, depending on whether it is rigid.
-			copy = current.makeCopy();
+			copy = current.makeCopy(false);
 			copy.deleteEdge(i,j);
+			copy.chooseTriangle();
+			copy.fixTriangle();
 			
 			dim = copy.dimensionOfTangentSpace(false);
+
 			if(dim == 0){
-				Queue.push(copy);
 				breakContactsAndAdd(copy, Queue);
 			}
 			else if(dim == 1){
-				
-				graph* g = copy.getG();
-				if(Configuration::animation) Configuration::animation->setG(g);
-				
+				dim = copy.dimensionOfTangentSpace(true);
+				if(dim!=1){
+					break;
+				}
 				walkedTo = copy.walk();
 				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
-					walkedTo[k].canonize(); //walking added an edge!
+					
 					Queue.push(walkedTo[k]);
 				}
 			}
