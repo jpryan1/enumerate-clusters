@@ -12,9 +12,9 @@
 #include "Configuration.h"
 #include "Bank.h"
 #include "animation.h"
-
+#include "Timer.h"
 Configuration initialCluster();
-void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue);
+void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue, Bank& predim);
 void enumerateClusters(Configuration* initial, Bank* bank);
 
 /*	TODO NOW:
@@ -29,7 +29,7 @@ void enumerateClusters(Configuration* initial, Bank* bank);
 
 //LATER Consider fixed size vectorization (16 byte alignment) via Eigen
 //NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
-
+Timer timer;
 
 int main(int argc, char** argv){
 	
@@ -38,7 +38,15 @@ int main(int argc, char** argv){
 	//Start with one cluster, built by iteratively adding one vertex with three edges to a triangle
 	Configuration c = initialCluster();
 	Bank* bank = new Bank();
-	
+//	Configuration* d = (Configuration*) malloc(sizeof(c));;
+//	memcpy(d, &c, sizeof(c));
+//	std::cout<<d->matches(c)<<std::endl;
+//	d->fixTriangle();
+//	std::cout<<d->matches(c)<<std::endl;
+////	std::cout<<c.matches(*d)<<std::endl;
+////	std::cout<<c.matches(*d)<<std::endl;
+//	free(d);
+//	return 0;
 
 	
 	if(argc>1){
@@ -84,36 +92,37 @@ void enumerateClusters(Configuration* initial, Bank* bank){
 	int hyper = 1;
 	int hypo = 1;
 	int total = 0;
-	Configuration oneohfour;
-	Configuration twosixthree;
-	
+	Bank predim;
 	while(Queue.size() > 0){
 		current = Queue.front();
 		Queue.pop();
+		current.canonize();
 		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
 			continue;
-		}
-		if(current.num_of_contacts<24){
+		}total++;
+			if(current.num_of_contacts<3*NUM_OF_SPHERES-6){
 			std::cout<<"Just added hypostatic to bank "<<hypo++<<" "<<current.num_of_contacts<<std::endl;
 			
-			if(Configuration::animation){
-				current.show(9);
-			}
+//			if(Configuration::animation){
+//				current.show(9);
+//			}
 
 		}
-		if(current.num_of_contacts>24){
+		if(current.num_of_contacts>3*NUM_OF_SPHERES-6){
+			//current.show(4);
 			std::cout<<"Just added hyperstatic to bank "<<hyper++<<" "<<current.num_of_contacts<<std::endl;
 		}
-		breakContactsAndAdd(current, Queue);
+		breakContactsAndAdd(current, Queue, predim);
 		
 	}
 	
 	
 	
 	std::cout<<"Bank is size "<<bank->size()<<std::endl;
+	std::cout<<"Aux banks are "<<predim.size()<<std::endl;
 	t = time(0) - t;
 	std::cout<<"Elapsed time: "<<t<<" seconds."<<std::endl;
-	
+	timer.display();
 }
 
 
@@ -143,7 +152,7 @@ Configuration initialCluster(){
 	
 	
 	graph g[NUM_OF_SPHERES];
-	memset(&g, 0, NUM_OF_SPHERES*sizeof(graph));
+	memset(g, 0, NUM_OF_SPHERES*sizeof(graph));
 	
 	Configuration* c = new Configuration(points, g, false);
 	
@@ -161,7 +170,7 @@ Configuration initialCluster(){
 	return *c;
 }
 
-void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue){
+void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue, Bank& predim ){
 	
 	//TODO include lookup table to reduce redundancy?
 	int dim;
@@ -178,21 +187,22 @@ void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queu
 			// the queue, or delete it, depending on whether it is rigid.
 			copy = current.makeCopy(false);
 			copy.deleteEdge(i,j);
-			copy.chooseTriangle();
-			copy.fixTriangle();
-			
-			dim = copy.dimensionOfTangentSpace(false);
-
-			if(dim == 0){
-				breakContactsAndAdd(copy, Queue);
+			copy.canonize();
+			if(!predim.add(copy)){
+				continue;
 			}
+			dim = copy.dimensionOfTangentSpace(true);
+			
+			
+			if(dim == 0){
+				breakContactsAndAdd(copy, Queue, predim);
+			}
+			
 			else if(dim == 1){
-				dim = copy.dimensionOfTangentSpace(true);
-				if(dim!=1){
-					break;
-				}
 				walkedTo = copy.walk();
 				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
+					int temp =walkedTo[k].dimensionOfTangentSpace(false);
+					if(temp>0) continue;
 					
 					Queue.push(walkedTo[k]);
 				}

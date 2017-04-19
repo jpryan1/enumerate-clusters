@@ -250,11 +250,11 @@ void Animation::draw(){
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//Draw!
-		camX = sin(glfwGetTime()) * radius;
-		camZ = cos(glfwGetTime()) * radius;
-		glm::mat4 view;
-		view = glm::lookAt(glm::vec3(camX, 0, camZ), glm::vec3(0.0, 0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+//		camX = sin(glfwGetTime()) * radius;
+//		camZ = cos(glfwGetTime()) * radius;
+//		glm::mat4 view;
+//		view = glm::lookAt(glm::vec3(camX, 0, camZ), glm::vec3(0.0, 0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+//		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		drawShapes();
 		
 		/* Swap front and back buffers */

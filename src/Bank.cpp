@@ -18,15 +18,16 @@ int Bank::size(){
 	return _size;
 }
 int Bank::recursiveAdd(Configuration c, BankNode* node){
-	
 	int comp = c.compareGraph(node->configs[0]);
-	
 	if(comp == 0){
 		for(int i=0; i<node->configs.size(); i++){
 			if(c.matches(node->configs[i])){
 				return 0;
 			}
 		}
+//		c.printDetails();
+//		node->configs[0].printDetails();
+//		std::cout<<"\n\n\n\n\n\n\n"<<std::endl;
 		node->configs.push_back(c);
 		return 1;
 	}else if(comp < 0){
