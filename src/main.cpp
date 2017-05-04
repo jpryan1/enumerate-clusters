@@ -8,15 +8,22 @@
 #include <queue>
 #include <unistd.h>
 #include <thread>
-
+#include <mutex>
 #include "Configuration.h"
 #include "Bank.h"
 #include "animation.h"
 #include "Timer.h"
-Configuration initialCluster();
-void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue, Bank& predim);
-void enumerateClusters(Configuration* initial, Bank* bank);
+#define NUM_THREADS 8
 
+std::queue<Configuration> Queue;
+std::mutex bank_lock;
+std::mutex queue_lock;
+
+
+Configuration initialCluster();
+void breakContactsAndAdd(Configuration& current, Bank& predim);
+void enumerateClusters(Configuration* initial, Bank* bank);
+void debug();
 /*	TODO NOW:
  *
  *	Clean up code, compartmentalize
@@ -31,13 +38,16 @@ void enumerateClusters(Configuration* initial, Bank* bank);
 //NOTE: nauty "graph" is just unsigned long (bitwise adj matrix)
 Timer timer;
 
+
 int main(int argc, char** argv){
+	Eigen::initParallel();
+	std::cout.precision(16);
 	
 	Animation animation;
 	
 	//Start with one cluster, built by iteratively adding one vertex with three edges to a triangle
 	Configuration c = initialCluster();
-	Bank* bank = new Bank();
+	Bank* bank = new Bank(true);
 //	Configuration* d = (Configuration*) malloc(sizeof(c));;
 //	memcpy(d, &c, sizeof(c));
 //	std::cout<<d->matches(c)<<std::endl;
@@ -47,9 +57,13 @@ int main(int argc, char** argv){
 ////	std::cout<<c.matches(*d)<<std::endl;
 //	free(d);
 //	return 0;
-
+	std::string opts ="\tOptions:\n\t\t(a)nimate\n\t\t(d)ebug\n\t\t(r)un";
+	if(argc<2){
+		std::cout<<"usage: ./build/enumerate_clusters {option}\n"<<opts<<std::endl;
+	}
+	char option = *(argv[1]);
 	
-	if(argc>1){
+	if(option=='a'){
 		animation.setup();
 	
 				//Set the initial position data for the animation
@@ -73,8 +87,26 @@ int main(int argc, char** argv){
 		std::thread enumerate(enumerateClusters, &c, bank);
 		animation.draw();
 		enumerate.join();
-	}else{
+	}else if(option=='r'){
 		enumerateClusters(&c, bank);
+	}else if(option=='d'){
+		animation.setup();
+		
+		//Set the initial position data for the animation
+		ConfigVector p = c.getP();
+		animation.setP(p);
+		
+		//Set the initial graph data for the animation
+		graph* g = c.getG();
+		animation.setG(g);
+		
+		// By giving the configuration class a pointer to the animation object, methods from within
+		// that class may pass data to the animation (this is necessary in the walk method)
+		Configuration::animation = &animation;
+		std::thread enumerate(debug);
+		//animation.draw();
+		enumerate.join();	}else{
+		std::cout<<"Error: unknown option.\n"<<opts<<std::endl;
 	}
 	//bank->printDetails();
 	return 0;
@@ -82,47 +114,95 @@ int main(int argc, char** argv){
 	
 }
 
+void threadFunc(Bank* predim, Bank* bank){
+	Configuration current;
+	int sz =0;
+	do{
+		queue_lock.lock();
+		current = Configuration(Queue.front());
+		Queue.pop();
+		int added;
+		queue_lock.unlock();
+		bank_lock.lock();
+		if(!current.canonize()){
+			bank_lock.unlock();
+			continue;
+		}
+//		std::cout<<"fn"<<std::endl;
+//		MatrixXd F_vec(current.num_of_contacts+6, 1);
+//		current.populate_F_vec(current.p, F_vec);
+//		std::cout<<"canonize said yes to "<<F_vec.norm()<<std::endl;
+//		
+		added = bank->add(current);
+		bank_lock.unlock();
+		if(!added){
+			continue;
+		}
+		breakContactsAndAdd(current, *predim);
+
+	}while(Queue.size() > 0);
+	
+}
+
+
 
 
 void enumerateClusters(Configuration* initial, Bank* bank){
 	double t = time(0);
-	std::queue<Configuration> Queue;
 	Queue.push(*initial);
 	Configuration current;
-	int hyper = 1;
-	int hypo = 1;
-	int total = 0;
+//	int hyper = 0;
+//	int hyper2 =0;
+//	int hypo2 = 0;
+//	int hypo = 0;
+//	int total = 0;
 	Bank predim;
-	while(Queue.size() > 0){
-		current = Queue.front();
+	while(Queue.size() > 0 && Queue.size()<20){
+		current = Configuration(Queue.front());
 		Queue.pop();
-		current.canonize();
+		if(!current.canonize()) continue;
+//		std::cout<<"og"<<std::endl;
+//		MatrixXd F_vec(current.num_of_contacts+6, 1);
+//		current.populate_F_vec(current.p, F_vec);
+//		std::cout<<"canonize said yes to "<<F_vec.norm()<<std::endl;
+//		
+
 		if(!bank->add(current)){ //returns 0 if already in bank, otherwise adds and returns 1
 			continue;
-		}total++;
-			if(current.num_of_contacts<3*NUM_OF_SPHERES-6){
-			std::cout<<"Just added hypostatic to bank "<<hypo++<<" "<<current.num_of_contacts<<std::endl;
-			
-//			if(Configuration::animation){
-//				current.show(9);
-//			}
-
 		}
-		if(current.num_of_contacts>3*NUM_OF_SPHERES-6){
-			//current.show(4);
-			std::cout<<"Just added hyperstatic to bank "<<hyper++<<" "<<current.num_of_contacts<<std::endl;
-		}
-		breakContactsAndAdd(current, Queue, predim);
+//		total++;
+//		if(current.num_of_contacts<3*NUM_OF_SPHERES-7){
+//			hypo2++;
+//		}
+//		else if(current.num_of_contacts<3*NUM_OF_SPHERES-6){
+//			hypo++;
+//
+//		}
+//		else if(current.num_of_contacts>3*NUM_OF_SPHERES-5){
+//			hyper2++;
+//			
+//		}else if(current.num_of_contacts>3*NUM_OF_SPHERES-6){
+//			hyper++;
+//		}
+		breakContactsAndAdd(current, predim);
 		
 	}
+	//std::cout<<"Very hypo: "<<hypo2<<" Hypo: "<<hypo<<" Hyper: "<<hyper<<" Very hyper: "<<hyper2<<std::endl;
+	std::thread threads[NUM_THREADS];
+	for(int i=0; i<NUM_THREADS; i++){
+		threads[i] = std::thread(threadFunc, &predim, bank);
+	}
 	
-	
-	
+	for (auto& th : threads) th.join();
+	//threadFunc(&predim, bank);
 	std::cout<<"Bank is size "<<bank->size()<<std::endl;
 	std::cout<<"Aux banks are "<<predim.size()<<std::endl;
 	t = time(0) - t;
 	std::cout<<"Elapsed time: "<<t<<" seconds."<<std::endl;
 	timer.display();
+	
+	
+	//bank->printDetails();
 }
 
 
@@ -170,7 +250,7 @@ Configuration initialCluster(){
 	return *c;
 }
 
-void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queue, Bank& predim ){
+void breakContactsAndAdd(Configuration& current, Bank& predim ){
 	
 	//TODO include lookup table to reduce redundancy?
 	int dim;
@@ -187,15 +267,21 @@ void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queu
 			// the queue, or delete it, depending on whether it is rigid.
 			copy = current.makeCopy(false);
 			copy.deleteEdge(i,j);
-			copy.canonize();
-			if(!predim.add(copy)){
+			bank_lock.lock();
+			if(!copy.canonize()){
+				bank_lock.unlock();
 				continue;
 			}
+			if(!predim.add(copy)){
+				bank_lock.unlock();
+				continue;
+			}
+			bank_lock.unlock();
 			dim = copy.dimensionOfTangentSpace(true);
 			
 			
 			if(dim == 0){
-				breakContactsAndAdd(copy, Queue, predim);
+				breakContactsAndAdd(copy, predim);
 			}
 			
 			else if(dim == 1){
@@ -203,8 +289,9 @@ void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queu
 				for(int k=0; k<walkedTo.size(); k++){ //walking can fail!
 					int temp =walkedTo[k].dimensionOfTangentSpace(false);
 					if(temp>0) continue;
-					
+					queue_lock.lock();
 					Queue.push(walkedTo[k]);
+					queue_lock.unlock();
 				}
 			}
 		}
@@ -213,6 +300,42 @@ void breakContactsAndAdd(Configuration& current, std::queue<Configuration>& Queu
 }
 
 
+void debug(){
+	
+	
+	Configuration first,second;
+	std::ifstream debugFile;
+	debugFile.open ("debug.txt");
+	if (debugFile.is_open()){
+		first.readClusterFromFile(debugFile);
+		second.readClusterFromFile(debugFile);
+		first.orbitMatches(second,0,true);
+		second.orbitMatches(first,0,true);
+//		first.canonize();
+//		second.canonize();
+//		
+		first.printOrbits();
+		second.printOrbits();
+//		while(1){
+//			first.show(5);
+//			second.show(5);
+//		}
+//
+		debugFile.close();
+	}else{
+		std::cout<<"Failed to open debug file!"<<std::endl;
+		
+	}
+	
+	
+
+	
+	
+	
+	
+	
+	
+}
 
 
 

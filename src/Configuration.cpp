@@ -90,7 +90,7 @@ void Configuration::populateRigidityMatrix(MatrixXd& rigid, ConfigVector& x){
 	std::vector<Contact> newContacts;
 	double dist, tol;
 	if(smallTol){
-		tol = tolA*0.01;
+		tol = tolA*0.001;
 	}else{
 		tol = tolA;
 	}
@@ -133,7 +133,22 @@ void Configuration::printDetails(){
 //	}
 	//std::cout<<"\nPrinting config details"<<std::endl;
 	graph* g1 =  this->g;
-	//std::cout<<num_of_contacts<<" contacts"<<std::endl;
+//	graph* g2 = this->prewalk_graph;
+//	//std::cout<<num_of_contacts<<" contacts"<<std::endl;
+//	std::cout<<"Prewalk Graph:"<<std::endl;
+//	for(int i=0; i<NUM_OF_SPHERES; i++){
+//		std::cout << std::bitset<8*sizeof(graph)>(g2[i]);// << std::endl;
+//	}std::cout<<std::endl;
+//	std::cout<<"Prewalk Points:"<<std::endl;
+//	for(int i=0; i<NUM_OF_SPHERES*3; i+=3){
+//		for(int j=0; j<3; j++){
+//			std::cout<<(this->prewalk_points)(i+j)<<" ";
+//		}
+//	}
+//	std::cout<<std::endl;
+//	
+	
+	
 	std::cout<<"Graph:"<<std::endl;
 	for(int i=0; i<NUM_OF_SPHERES; i++){
 		std::cout << std::bitset<8*sizeof(graph)>(g1[i]);// << std::endl;
@@ -147,6 +162,30 @@ void Configuration::printDetails(){
 	std::cout<<std::endl;
 	//std::cout<<"Done printing config details\n"<<std::endl;
 	
+}
+void Configuration::readClusterFromFile(std::istream& file){
+	memset(this->prewalk_graph, 0, NUM_OF_SPHERES*sizeof(graph));
+	memset(&(this->prewalk_points), 0, NUM_OF_SPHERES*3*sizeof(double));
+	
+	memset(this->g, 0, NUM_OF_SPHERES*sizeof(graph));
+	char c;
+	for(int i=0; i<NUM_OF_SPHERES; i++){
+		int j;
+		for(j=0; j<NUM_OF_SPHERES; j++){
+			file >> c;
+			if(c=='1'){
+				this->addEdge(i, j);
+			}
+		}
+		for(;j<64;j++) file >> c;//this magic number is the number of bits in one "graph".
+		
+	}
+	double d;
+	for(int i=0; i<3*NUM_OF_SPHERES; i++){
+		file>>d;
+		this->p(i) = d;
+	}
+	canonize();
 }
 
 

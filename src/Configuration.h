@@ -1,7 +1,7 @@
 #ifndef  _CONFIGURATION_H_    /* only process this file once */
 #define  _CONFIGURATION_H_
 
-#define NUM_OF_SPHERES 10
+#define NUM_OF_SPHERES 11
 
 #define TOLMAX 10*DEL_S
 #define TOLMIN DEL_S/8
@@ -21,6 +21,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include "Eigen/Dense"
 #include "nauty.h"
 #include "animation.h"
@@ -58,12 +59,15 @@ public:
 		num_of_contacts = other.num_of_contacts;
 		memcpy(&p, &other.p, 3*NUM_OF_SPHERES*sizeof(double));
 		memcpy(g, other.g, NUM_OF_SPHERES*sizeof(graph));
+		memcpy(&prewalk_points, &other.prewalk_points, 3*NUM_OF_SPHERES*sizeof(double));
+		memcpy(prewalk_graph, other.prewalk_graph, NUM_OF_SPHERES*sizeof(graph));
 		memcpy(triangle, other.triangle, 3*sizeof(int));
+		memcpy(orbits, other.orbits, NUM_OF_SPHERES*sizeof(int));
 	}
 	
 	
 	void chooseTriangle();
-	void fixTriangle();
+	int fixTriangle();
 	
 	Configuration makeCopy(bool setTriangle = true);
 	void printDetails();
@@ -71,10 +75,10 @@ public:
 	
 	int compareGraph(Configuration& other); //returns true if graphs match
 	
-	int matches(Configuration& other, bool det = false); //returns true if configurations are the same
 	int matchesHelper(Configuration& other,  bool det = false);
+	int orbitMatches(Configuration& other, int i, bool det = false);
 
-	void canonize();
+	int canonize();
 	
 	void deleteEdge(int i, int j);
 	void addEdge(int i, int j);
@@ -102,11 +106,29 @@ public:
 	int num_of_contacts;
 	void checkTriangle(int a);
 	void show(int a);
-	ConfigVector v;
-private:
-	int triangle[3];
-	bool isRegular;
+	
+	
+	ConfigVector prewalk_points;
+	graph prewalk_graph[NUM_OF_SPHERES];
+	
+	
+	void readClusterFromFile(std::istream& file);
+	
+	
+	
 	ConfigVector p;
+	
+	void printOrbits(){
+		for(int i=0; i<NUM_OF_SPHERES; i++) std::cout<<orbits[i];
+		std::cout<<std::endl;
+	}
+	
+private:
+	bool isRegular;
+	int orbits[NUM_OF_SPHERES];
+	int triangle[3];
+	ConfigVector v;
+	
 	// contains 3*n doubles for points in space
 	
 	graph g[NUM_OF_SPHERES];

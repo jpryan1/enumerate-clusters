@@ -2,7 +2,7 @@
 #ifndef  _ANIMATION_H_    /* only process this file once */
 #define  _ANIMATION_H_
 
-#define NUM_OF_SPHERES 10
+#define NUM_OF_SPHERES 11
 #define GLEW_STATIC
 #include <iostream>
 #include <mutex>

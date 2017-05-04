@@ -2,7 +2,7 @@
 #include "Bank.h"
 
 int Bank::add(Configuration c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
-	
+
 	if(root->configs.size()<1){
 		_size++;
 		root->configs.push_back(c);
@@ -17,17 +17,33 @@ int Bank::add(Configuration c){ //RETURNS 1 IF ADDED, 0 IF ALREADY IN BANK
 int Bank::size(){
 	return _size;
 }
-int Bank::recursiveAdd(Configuration c, BankNode* node){
+int Bank::recursiveAdd(Configuration& c, BankNode* node){
+
 	int comp = c.compareGraph(node->configs[0]);
 	if(comp == 0){
+		
 		for(int i=0; i<node->configs.size(); i++){
-			if(c.matches(node->configs[i])){
+			if(c.orbitMatches(node->configs[i],0)){
 				return 0;
 			}
 		}
-//		c.printDetails();
-//		node->configs[0].printDetails();
-//		std::cout<<"\n\n\n\n\n\n\n"<<std::endl;
+		if(isMainBank){
+			std::cout<<"Compared the following, no match"<<std::endl;
+			c.printDetails();
+			node->configs[0].printDetails();
+			MatrixXd F_vec(c.num_of_contacts+6, 1);
+			c.populate_F_vec(c.p, F_vec);
+			MatrixXd F_vec2(node->configs[0].num_of_contacts+6, 1);
+			node->configs[0].populate_F_vec(node->configs[0].p, F_vec2);
+			std::cout<<"Fs "<<F_vec.norm()<<" "<<F_vec2.norm();
+			std::cout<<"Orb distance:"<<std::endl;
+			c.orbitMatches(node->configs[0],0, true);
+			std::cout<<"Orbs"<<std::endl;
+			c.printOrbits();
+			node->configs[0].printOrbits();
+			std::cout<<"\n\n\n\n"<<std::endl;
+			
+		}
 		node->configs.push_back(c);
 		return 1;
 	}else if(comp < 0){

@@ -22,7 +22,8 @@ class Bank{
 	//TODO make this a self-balancing tree
 	
 public:
-	Bank(){
+	Bank(bool b = false){
+		this->isMainBank = b;
 		root = new BankNode();
 		_size = 0;
 	}
@@ -39,9 +40,10 @@ public:
 	void printDetails();
 	
 private:
+	bool isMainBank;
 	int _size;
 	BankNode* root;
-	int recursiveAdd(Configuration c, BankNode* node);
+	int recursiveAdd(Configuration& c, BankNode* node);
 	void recPrint(BankNode* node);
 
 };

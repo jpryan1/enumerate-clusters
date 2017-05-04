@@ -51,7 +51,8 @@ std::vector<Configuration> Configuration::walk(){
 		p = right_null_space.rows();
 		q = right_null_space.cols();
 		right_null_space = right_null_space.householderQr().householderQ();
-		right_null_space = right_null_space.block(0,0,p,q);
+		MatrixXd leftcols = right_null_space.leftCols(q);
+		right_null_space = leftcols;
 		
 		//Project direction vector onto right nullspace
 		direction = right_null_space*right_null_space.transpose()*direction;
@@ -74,7 +75,7 @@ std::vector<Configuration> Configuration::walk(){
 				animation->setP(proj);
 			}
 			//Check if we have any new contacts
-			contacts = checkForNewContacts(proj);
+			contacts = checkForNewContacts(proj, small_step);
 			
 			if(contacts.size()>=1){
 				if(!small_step){
@@ -86,10 +87,12 @@ std::vector<Configuration> Configuration::walk(){
 				//We reached the end of our walk!
 				//Add the new configuration to our newConfigs list.
 				Configuration newC((double*) &proj,  (graph*) &this->g);
+				newC.prewalk_points = this->p;
+				memcpy(newC.prewalk_graph, this->g, NUM_OF_SPHERES*sizeof(graph));
 				for(int j=0; j<contacts.size(); j++){
 					newC.addEdge(contacts[j].first, contacts[j].second);
-					newConfigs.push_back(newC);
 				}
+				newConfigs.push_back(newC);
 				break;
 			}
 			
@@ -108,26 +111,39 @@ std::vector<Configuration> Configuration::walk(){
 			p = right_null_space.rows();
 			q = right_null_space.cols();
 			right_null_space = right_null_space.householderQr().householderQ();
-			right_null_space = right_null_space.block(0,0,p,q);
+			leftcols = right_null_space.leftCols(q);
+			right_null_space = leftcols;
 			direction = right_null_space*right_null_space.transpose()*direction;
 			direction = direction/direction.norm();
 			
 		}
 	}
 	
-	
+	std::vector<Configuration> projectedConfigs;
 	for(int i=0; i<newConfigs.size(); i++){
-		newConfigs[i].setTriangle(triangle);
-		newConfigs[i].project();//}{
-		
-		contacts = newConfigs[i].checkForNewContacts(newConfigs[i].p, true);
-		for(int j=0; j<contacts.size(); j++){
-			newConfigs[i].addEdge(contacts[j].first, contacts[j].second);
+		bool add = true;
+		while(1){
+			
+			if(!newConfigs[i].project()){
+				add = false;
+				break;
+			}
+			contacts = newConfigs[i].checkForNewContacts(newConfigs[i].p, true);
+			if(contacts.size() == 0) break;
+			for(int j=0; j<contacts.size(); j++){
+				newConfigs[i].addEdge(contacts[j].first, contacts[j].second);
+			}
 		}
+		
+		if(add) projectedConfigs.push_back(newConfigs[i]);
+//		MatrixXd F_vec(newConfigs[i].num_of_contacts+6, 1);
+//		newConfigs[i].populate_F_vec(newConfigs[i].p, F_vec);
+//		std::cout<<"in walk, projd is "<<F_vec.norm()<<std::endl;
+		
 	}
 	
 	
-	return newConfigs;
+	return projectedConfigs;
 	
 	
 }

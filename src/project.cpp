@@ -4,7 +4,11 @@
 extern Timer timer;
 
 int Configuration::project(){
-	return project(this->p, this->p);
+	ConfigVector copy = this->p;
+	int temp = project(copy, copy);
+	if(!temp) return 0;
+	this->p = copy;
+	return 1;
 }
 int Configuration::project(ConfigVector& old, ConfigVector& proj){ // TODO include constraint that projection is orthogonal-ish
 	//std::cout<<"Projecting"<<std::endl;
@@ -28,7 +32,7 @@ int Configuration::project(ConfigVector& old, ConfigVector& proj){ // TODO inclu
 	
 	
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0,1e-14);
+	std::normal_distribution<double> distribution(0,1e-12);
 
 	
 	
@@ -39,8 +43,13 @@ int Configuration::project(ConfigVector& old, ConfigVector& proj){ // TODO inclu
 			populateRigidityMatrix( rigid_x, initial); //repopulate it wrt new initial vector
 			
 			rigid_x *=2; //now its the jacobian
-			populate_F_vec(initial, F_vec);
 			
+			populate_F_vec(initial, F_vec);
+			F_size = F_vec.norm();
+			if(F_size<=NEWTON_TOL){
+				break;
+			}
+
 			if(this->isRegular){
 				proj =  initial - rigid_x.fullPivLu().solve(F_vec);
 			}
@@ -55,22 +64,31 @@ int Configuration::project(ConfigVector& old, ConfigVector& proj){ // TODO inclu
 			if(jump_size > DELXMAX){
 				delx.normalize();
 				proj = initial + DELXMAX * delx;
-				
 			}
-			F_size = F_vec.norm();
-			initial = proj;
 			
-		}while(jump_size>NEWTON_TOL && F_size>NEWTON_TOL && iterations<MAX_NEWTON_ITERATIONS);
-		if(iterations<MAX_NEWTON_ITERATIONS) break;
+			initial = proj;
+		}while(jump_size>NEWTON_TOL && iterations<MAX_NEWTON_ITERATIONS);
+	
+		if(F_size<=NEWTON_TOL) break;
+		
 		for(int i=0; i<3*NUM_OF_SPHERES; i++){
 			rand(i) =  distribution(generator);
 		}
 		initial = old + rand;
 	}
+	
+	
 	timer.end(1);
-	if(iterations>=MAX_NEWTON_ITERATIONS){
+	populate_F_vec(proj, F_vec);
+	F_size = F_vec.norm();
+	//I am not sure why we need to recalculate it, but without
+	//recalculation, we were having bad clusters sneak by
+	
+	if(F_size>NEWTON_TOL){
+	//	std::cout<<"Projection failed, size "<<F_size<<std::endl;
 		return 0;
 	}
+	//std::cout<<F_size<<" is smaller than "<<NEWTON_TOL<<std::endl;
 	return 1;
 }
 
